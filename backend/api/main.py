@@ -11,6 +11,12 @@ import time
 import aiofiles
 import re
 import requests
+from fastapi.responses import StreamingResponse
+import asyncio
+from contextlib import asynccontextmanager
+import json
+import aiohttp
+from fastapi import BackgroundTasks
 
 # Add parent directory to path
 sys.path.append(str(Path(__file__).parent.parent))
@@ -401,8 +407,59 @@ async def get_stream_url(track_id: int, quality: str = "LOSSLESS"):
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
+active_downloads = {}  # Track active downloads: {track_id: {'progress': int, 'status': str}}
+
+@app.get("/api/download/progress/{track_id}")
+async def download_progress_stream(track_id: int):
+    """Stream download progress updates via Server-Sent Events"""
+    async def event_generator():
+        """Generate SSE events for download progress"""
+        last_progress = -1
+        no_data_count = 0
+        max_no_data = 10  # 5 seconds (10 * 0.5s)
+        
+        while True:
+            if track_id in active_downloads:
+                download_info = active_downloads[track_id]
+                progress = download_info.get('progress', 0)
+                status = download_info.get('status', 'downloading')
+                
+                # Only send if progress changed
+                if progress != last_progress:
+                    yield f"data: {json.dumps({'progress': progress, 'track_id': track_id, 'status': status})}\n\n"
+                    last_progress = progress
+                    no_data_count = 0
+                
+                # Stop streaming when download completes
+                if progress >= 100 or status == 'completed':
+                    # Send final completion event
+                    yield f"data: {json.dumps({'progress': 100, 'track_id': track_id, 'status': 'completed'})}\n\n"
+                    break
+            else:
+                no_data_count += 1
+                
+                # If track not found for too long, stop
+                if no_data_count >= max_no_data:
+                    yield f"data: {json.dumps({'progress': 0, 'track_id': track_id, 'status': 'not_found'})}\n\n"
+                    break
+            
+            await asyncio.sleep(0.5)  # Update every 500ms
+    
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no"  # Disable nginx buffering
+        }
+    )
+
 @app.post("/api/download/track")
-async def download_track_server_side(request: DownloadTrackRequest):
+async def download_track_server_side(
+    request: DownloadTrackRequest,
+    background_tasks: BackgroundTasks
+):
     """Download track to server-side music directory"""
     try:
         print(f"\n{'='*60}")
@@ -413,14 +470,22 @@ async def download_track_server_side(request: DownloadTrackRequest):
         print(f"  Quality: {request.quality}")
         print(f"{'='*60}\n")
         
+        # Initialize progress tracking with status
+        active_downloads[request.track_id] = {
+            'progress': 0,
+            'status': 'starting'
+        }
+        
         # Get stream URL
         print(f"[1/3] Getting stream URL...")
         track_data = tidal_client.get_track(request.track_id, request.quality)
         if not track_data:
+            del active_downloads[request.track_id]
             raise HTTPException(status_code=404, detail="Track not found")
         
         stream_url = extract_stream_url(track_data)
         if not stream_url:
+            del active_downloads[request.track_id]
             raise HTTPException(status_code=404, detail="Stream URL not found")
         
         print(f"✓ Stream URL: {stream_url[:60]}...")
@@ -435,6 +500,7 @@ async def download_track_server_side(request: DownloadTrackRequest):
         # Check if already exists
         if filepath.exists():
             print(f"⚠️  File already exists, skipping download")
+            del active_downloads[request.track_id]
             return {
                 "status": "exists",
                 "filename": filename,
@@ -442,66 +508,119 @@ async def download_track_server_side(request: DownloadTrackRequest):
                 "message": f"File already exists: {filename}"
             }
         
-        # Download synchronously (not in background) for better error handling
-        print(f"[3/3] Downloading...")
+        # Update status to downloading
+        active_downloads[request.track_id] = {
+            'progress': 0,
+            'status': 'downloading'
+        }
         
-        response = requests.get(stream_url, stream=True, timeout=30)
+        # Start download in background task
+        background_tasks.add_task(
+            download_file_async,
+            request.track_id,
+            stream_url,
+            filepath,
+            filename
+        )
         
-        if response.status_code != 200:
-            error_msg = f"HTTP {response.status_code}"
-            print(f"✗ Download failed: {error_msg}")
-            raise HTTPException(status_code=response.status_code, detail=error_msg)
+        return {
+            "status": "downloading",
+            "filename": filename,
+            "path": str(filepath),
+            "message": f"Download started: {filename}"
+        }
         
-        # Download with progress
-        total_size = int(response.headers.get('content-length', 0))
-        downloaded = 0
+    except HTTPException:
+        if request.track_id in active_downloads:
+            del active_downloads[request.track_id]
+        raise
+    except Exception as e:
+        print(f"✗ Download error: {e}")
+        import traceback
+        traceback.print_exc()
         
-        with open(filepath, 'wb') as f:
-            for chunk in response.iter_content(chunk_size=8192):
-                if chunk:
-                    f.write(chunk)
-                    downloaded += len(chunk)
-                    if total_size > 0:
-                        progress = (downloaded / total_size) * 100
-                        print(f"  Progress: {progress:.1f}%", end='\r')
+        if request.track_id in active_downloads:
+            del active_downloads[request.track_id]
+        
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+async def download_file_async(track_id: int, stream_url: str, filepath: Path, filename: str):
+    """Download file asynchronously with progress tracking"""
+    try:
+        print(f"[3/3] Downloading {filename}...")
+        
+        # Ensure active_downloads entry exists
+        if track_id not in active_downloads:
+            active_downloads[track_id] = {'progress': 0, 'status': 'downloading'}
+        
+        # Use aiohttp for async download
+        async with aiohttp.ClientSession() as session:
+            async with session.get(stream_url, timeout=aiohttp.ClientTimeout(total=300)) as response:
+                if response.status != 200:
+                    error_msg = f"HTTP {response.status}"
+                    print(f"✗ Download failed: {error_msg}")
+                    if track_id in active_downloads:
+                        active_downloads[track_id] = {'progress': 0, 'status': 'failed'}
+                        await asyncio.sleep(2)  # Keep status for a bit
+                        del active_downloads[track_id]
+                    return
+                
+                total_size = int(response.headers.get('content-length', 0))
+                downloaded = 0
+                
+                with open(filepath, 'wb') as f:
+                    async for chunk in response.content.iter_chunked(8192):
+                        if chunk:
+                            f.write(chunk)
+                            downloaded += len(chunk)
+                            
+                            if total_size > 0:
+                                progress = int((downloaded / total_size) * 100)
+                                active_downloads[track_id] = {
+                                    'progress': progress,
+                                    'status': 'downloading'
+                                }
+                                print(f"  Progress: {progress}%", end='\r')
+                            
+                            # Small delay to allow SSE to send updates
+                            await asyncio.sleep(0.01)
+        
+        # Mark as complete - KEEP in active_downloads for a bit
+        active_downloads[track_id] = {
+            'progress': 100,
+            'status': 'completed'
+        }
         
         file_size_mb = filepath.stat().st_size / 1024 / 1024
         print(f"\n✓ Downloaded: {filename} ({file_size_mb:.2f} MB)")
         print(f"  Location: {filepath}")
         print(f"{'='*60}\n")
         
-        return {
-            "status": "completed",
-            "filename": filename,
-            "path": str(filepath),
-            "size_mb": round(file_size_mb, 2),
-            "message": f"Successfully downloaded: {filename}"
-        }
+        # Keep status for 2 seconds so SSE can send final update
+        await asyncio.sleep(2)
         
-    except HTTPException:
-        raise
-    except requests.exceptions.Timeout:
-        error_msg = "Download timed out after 30 seconds"
-        print(f"✗ {error_msg}")
-        raise HTTPException(status_code=504, detail=error_msg)
-    except requests.exceptions.RequestException as e:
-        error_msg = f"Network error: {str(e)}"
-        print(f"✗ {error_msg}")
-        raise HTTPException(status_code=500, detail=error_msg)
+        # Now safe to remove
+        if track_id in active_downloads:
+            del active_downloads[track_id]
+        
     except Exception as e:
         print(f"✗ Download error: {e}")
         import traceback
         traceback.print_exc()
         
+        if track_id in active_downloads:
+            active_downloads[track_id] = {'progress': 0, 'status': 'failed'}
+            await asyncio.sleep(2)
+            del active_downloads[track_id]
+        
         # Clean up partial file
-        if 'filepath' in locals() and filepath.exists():
+        if filepath.exists():
             try:
                 filepath.unlink()
                 print(f"  Cleaned up partial file: {filename}")
             except Exception:
                 pass
-        
-        raise HTTPException(status_code=500, detail=str(e))
 
 def extract_stream_url(track_data) -> Optional[str]:
     """Extract stream URL from track data"""

@@ -57,22 +57,108 @@ class DownloadManager {
    * Download track server-side (saves to backend/downloads/ or custom path)
    */
   async downloadTrackServerSide(track) {
-    const { startDownload, completeDownload, failDownload, quality } =
-      useDownloadStore.getState();
+    const {
+      startDownload,
+      completeDownload,
+      failDownload,
+      updateProgress,
+      quality,
+    } = useDownloadStore.getState();
 
     startDownload(track.id);
 
+    const trackId = track.tidal_id || track.id;
+    if (!trackId) {
+      failDownload(track.id, "Track ID is missing");
+      return;
+    }
+
+    let eventSource = null;
+    let downloadCompleted = false;
+
     try {
       console.log(`⬇️ Downloading (server): ${track.artist} - ${track.title}`);
-      console.log(`  Track ID: ${track.tidal_id || track.id}`);
+      console.log(`  Track ID: ${trackId}`);
       console.log(`  Quality: ${quality}`);
 
-      // Ensure we have the correct track ID
-      const trackId = track.tidal_id || track.id;
-      if (!trackId) {
-        throw new Error("Track ID is missing");
-      }
+      // Create a promise that resolves when download completes
+      const downloadCompletionPromise = new Promise((resolve, reject) => {
+        // Connect to progress stream
+        eventSource = new EventSource(
+          `${API_BASE}/download/progress/${trackId}`
+        );
 
+        eventSource.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+
+            if (data.progress !== undefined) {
+              updateProgress(track.id, data.progress);
+              console.log(
+                `  Progress: ${data.progress}% (${
+                  data.status || "downloading"
+                })`
+              );
+
+              // Check if download is complete
+              if (data.status === "completed" || data.progress >= 100) {
+                downloadCompleted = true;
+                console.log("  Download completed!");
+                eventSource?.close();
+                resolve();
+              }
+            }
+
+            // Handle not found status
+            if (data.status === "not_found") {
+              console.error("  Download progress not found");
+              reject(new Error("Download progress not found"));
+            }
+
+            // Handle failed status
+            if (data.status === "failed") {
+              console.error("  Download failed on server");
+              reject(new Error("Download failed on server"));
+            }
+          } catch (error) {
+            console.error("Failed to parse progress event:", error);
+          }
+        };
+
+        eventSource.onerror = (error) => {
+          console.error("SSE connection error:", error);
+
+          // Don't immediately fail - might just be reconnecting
+          if (!downloadCompleted) {
+            console.log(
+              "  SSE connection lost, but download may still be in progress..."
+            );
+            // Give it a chance to reconnect
+            setTimeout(() => {
+              if (!downloadCompleted) {
+                eventSource?.close();
+                reject(new Error("SSE connection failed"));
+              }
+            }, 5000);
+          } else {
+            eventSource?.close();
+          }
+        };
+
+        // Timeout after 5 minutes
+        setTimeout(() => {
+          if (!downloadCompleted) {
+            console.error("  Download timeout (5 minutes)");
+            eventSource?.close();
+            reject(new Error("Download timeout (5 minutes)"));
+          }
+        }, 300000);
+      });
+
+      // Give SSE connection time to establish
+      await this.sleep(500);
+
+      // Start the download
       const requestBody = {
         track_id: Number(trackId),
         artist: String(track.artist || "Unknown Artist"),
@@ -80,7 +166,7 @@ class DownloadManager {
         quality: String(quality),
       };
 
-      console.log("Request body:", JSON.stringify(requestBody, null, 2));
+      console.log("Starting download...");
 
       const response = await fetch(`${API_BASE}/download/track`, {
         method: "POST",
@@ -107,7 +193,16 @@ class DownloadManager {
       }
 
       const result = await response.json();
-      console.log("Download result:", result);
+      console.log("Download started:", result);
+
+      // Wait for download to complete via SSE
+      if (result.status === "downloading") {
+        console.log("  Waiting for download to complete...");
+        await downloadCompletionPromise;
+      } else if (result.status === "exists") {
+        // File already exists, mark as complete immediately
+        downloadCompleted = true;
+      }
 
       completeDownload(track.id, result.filename);
       console.log(`✓ Downloaded: ${result.filename}`);
@@ -117,6 +212,10 @@ class DownloadManager {
     } catch (error) {
       console.error(`✗ Download failed: ${track.title}`, error);
       failDownload(track.id, error.message);
+    } finally {
+      if (eventSource) {
+        eventSource.close();
+      }
     }
 
     await this.sleep(1000);
