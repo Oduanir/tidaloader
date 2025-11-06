@@ -1,0 +1,6 @@
+backend/api/__pycache__/
+backend/__pycache__/
+downloads/
+frontend/package-lock.json
+frontend/node_modules/
+tidal-ui-src-reference/
