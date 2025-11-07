@@ -232,6 +232,7 @@ async def download_file_async(track_id: int, stream_url: str, filepath: Path, fi
             except Exception:
                 pass
 
+
 async def write_metadata_tags(filepath: Path, metadata: dict):
     """Write metadata tags to FLAC file using Mutagen"""
     try:
@@ -267,7 +268,8 @@ async def write_metadata_tags(filepath: Path, metadata: dict):
         if metadata.get('musicbrainz_albumartistid'):
             audio['MUSICBRAINZ_ALBUMARTISTID'] = metadata['musicbrainz_albumartistid']
         
-        # Lyrics - fetch from LrcLib
+        # Lyrics - fetch from LrcLib (but DON'T embed in FLAC)
+        # We'll only save to external .lrc file to preserve timing accuracy
         if metadata.get('title') and metadata.get('artist'):
             try:
                 print(f"  🎤 Fetching lyrics...")
@@ -279,22 +281,13 @@ async def write_metadata_tags(filepath: Path, metadata: dict):
                 )
                 
                 if lyrics_result:
-                    # Store PLAIN lyrics in the FLAC tag (no timestamps)
-                    # This prevents sync issues with players that don't support LRC in tags
-                    if lyrics_result.plain_lyrics:
-                        audio['LYRICS'] = lyrics_result.plain_lyrics
-                        print(f"  ✓ Added plain lyrics to metadata")
-                    elif lyrics_result.synced_lyrics:
-                        # If only synced lyrics exist, strip timestamps for the tag
-                        import re
-                        plain_from_synced = re.sub(r'\[[\d:.]+\]\s*', '', lyrics_result.synced_lyrics)
-                        audio['LYRICS'] = plain_from_synced.strip()
-                        print(f"  ✓ Added lyrics to metadata (timestamps stripped)")
-                    
-                    # Store synced lyrics separately for .lrc file
+                    # Store synced lyrics in metadata for .lrc file creation
                     if lyrics_result.synced_lyrics:
                         metadata['synced_lyrics'] = lyrics_result.synced_lyrics
-                        print(f"  ✓ Synced lyrics available for .lrc file")
+                        print(f"  ✓ Synced lyrics found (will save to .lrc)")
+                    elif lyrics_result.plain_lyrics:
+                        metadata['plain_lyrics'] = lyrics_result.plain_lyrics
+                        print(f"  ✓ Plain lyrics found (will save to .txt)")
                     
             except Exception as e:
                 print(f"  ⚠️  Failed to fetch lyrics: {e}")
@@ -380,10 +373,13 @@ async def organize_file_by_metadata(temp_filepath: Path, metadata: dict) -> Path
             # Delete the temp file since final file already exists
             if temp_filepath.exists() and temp_filepath != final_path:
                 temp_filepath.unlink()
-                # Also clean up temp .lrc file if it exists
+                # Also clean up temp lyrics files if they exist
                 temp_lrc = temp_filepath.with_suffix('.lrc')
                 if temp_lrc.exists():
                     temp_lrc.unlink()
+                temp_txt = temp_filepath.with_suffix('.txt')
+                if temp_txt.exists():
+                    temp_txt.unlink()
             return final_path
         
         # Move file to organized location
@@ -392,12 +388,18 @@ async def organize_file_by_metadata(temp_filepath: Path, metadata: dict) -> Path
             shutil.move(str(temp_filepath), str(final_path))
             print(f"  ✓ Organized to: {artist_folder}/{album_folder}/{filename}")
             
-            # Move .lrc file if it exists (from temp location)
+            # Move lyrics files if they exist (from temp location)
             temp_lrc_path = temp_filepath.with_suffix('.lrc')
             if temp_lrc_path.exists():
                 final_lrc_path = final_path.with_suffix('.lrc')
                 shutil.move(str(temp_lrc_path), str(final_lrc_path))
                 print(f"  ✓ Moved .lrc file to organized location")
+            
+            temp_txt_path = temp_filepath.with_suffix('.txt')
+            if temp_txt_path.exists():
+                final_txt_path = final_path.with_suffix('.txt')
+                shutil.move(str(temp_txt_path), str(final_txt_path))
+                print(f"  ✓ Moved .txt file to organized location")
         
         # Save synced lyrics to .lrc file in final location
         if metadata.get('synced_lyrics'):
@@ -408,6 +410,16 @@ async def organize_file_by_metadata(temp_filepath: Path, metadata: dict) -> Path
                 print(f"  ✓ Saved synced lyrics to .lrc file")
             except Exception as e:
                 print(f"  ⚠️  Failed to save .lrc file: {e}")
+        
+        # Save plain lyrics to .txt file if synced not available
+        elif metadata.get('plain_lyrics'):
+            txt_path = final_path.with_suffix('.txt')
+            try:
+                with open(txt_path, 'w', encoding='utf-8') as f:
+                    f.write(metadata['plain_lyrics'])
+                print(f"  ✓ Saved plain lyrics to .txt file")
+            except Exception as e:
+                print(f"  ⚠️  Failed to save .txt file: {e}")
         
         return final_path
         
