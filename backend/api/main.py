@@ -17,6 +17,7 @@ import json
 import aiohttp
 import os
 from dotenv import load_dotenv
+from mutagen.flac import FLAC, Picture  # Add this line
 
 load_dotenv()
 
@@ -153,9 +154,9 @@ def extract_stream_url(track_data) -> Optional[str]:
     
     return None
 
-async def download_file_async(track_id: int, stream_url: str, filepath: Path, filename: str):
+async def download_file_async(track_id: int, stream_url: str, filepath: Path, filename: str, metadata: dict = None):
     try:
-        print(f"[3/3] Downloading {filename}...")
+        print(f"[3/4] Downloading {filename}...")
         
         if track_id not in active_downloads:
             active_downloads[track_id] = {'progress': 0, 'status': 'downloading'}
@@ -190,6 +191,11 @@ async def download_file_async(track_id: int, stream_url: str, filepath: Path, fi
                             
                             await asyncio.sleep(0.01)
         
+        # Write metadata tags
+        if metadata:
+            print(f"\n[4/4] Writing metadata tags...")
+            await write_metadata_tags(filepath, metadata)
+        
         active_downloads[track_id] = {
             'progress': 100,
             'status': 'completed'
@@ -221,6 +227,66 @@ async def download_file_async(track_id: int, stream_url: str, filepath: Path, fi
                 print(f"  Cleaned up partial file: {filename}")
             except Exception:
                 pass
+
+async def write_metadata_tags(filepath: Path, metadata: dict):
+    """Write metadata tags to FLAC file using Mutagen"""
+    try:
+        audio = FLAC(str(filepath))
+        
+        # Basic tags
+        if metadata.get('title'):
+            audio['TITLE'] = metadata['title']
+        if metadata.get('artist'):
+            audio['ARTIST'] = metadata['artist']
+        if metadata.get('album'):
+            audio['ALBUM'] = metadata['album']
+        if metadata.get('album_artist'):
+            audio['ALBUMARTIST'] = metadata['album_artist']
+        if metadata.get('date'):
+            audio['DATE'] = metadata['date']
+        if metadata.get('track_number'):
+            audio['TRACKNUMBER'] = str(metadata['track_number'])
+        if metadata.get('total_tracks'):
+            audio['TRACKTOTAL'] = str(metadata['total_tracks'])
+        if metadata.get('disc_number'):
+            audio['DISCNUMBER'] = str(metadata['disc_number'])
+        if metadata.get('genre'):
+            audio['GENRE'] = metadata['genre']
+        
+        # MusicBrainz IDs for Picard
+        if metadata.get('musicbrainz_trackid'):
+            audio['MUSICBRAINZ_TRACKID'] = metadata['musicbrainz_trackid']
+        if metadata.get('musicbrainz_albumid'):
+            audio['MUSICBRAINZ_ALBUMID'] = metadata['musicbrainz_albumid']
+        if metadata.get('musicbrainz_artistid'):
+            audio['MUSICBRAINZ_ARTISTID'] = metadata['musicbrainz_artistid']
+        if metadata.get('musicbrainz_albumartistid'):
+            audio['MUSICBRAINZ_ALBUMARTISTID'] = metadata['musicbrainz_albumartistid']
+        
+        # Cover art
+        if metadata.get('cover_url'):
+            try:
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(metadata['cover_url']) as response:
+                        if response.status == 200:
+                            image_data = await response.read()
+                            picture = Picture()
+                            picture.type = 3  # Cover (front)
+                            picture.mime = 'image/jpeg'
+                            picture.desc = 'Cover'
+                            picture.data = image_data
+                            audio.add_picture(picture)
+                            print(f"  ✓ Added cover art")
+            except Exception as e:
+                print(f"  ⚠️  Failed to add cover art: {e}")
+        
+        audio.save()
+        print(f"  ✓ Metadata tags written")
+        
+    except Exception as e:
+        print(f"  ⚠️  Failed to write metadata: {e}")
+        import traceback
+        traceback.print_exc()
 
 @app.get("/api")
 async def api_root():
@@ -715,13 +781,57 @@ async def download_track_server_side(
             'status': 'starting'
         }
         
-        print(f"[1/3] Getting stream URL...")
-        track_data = tidal_client.get_track(request.track_id, request.quality)
-        if not track_data:
+        print(f"[1/4] Getting track metadata...")
+        # Get full track details for metadata
+        track_info = tidal_client.get_track(request.track_id, request.quality)
+        if not track_info:
             del active_downloads[request.track_id]
             raise HTTPException(status_code=404, detail="Track not found")
         
-        stream_url = extract_stream_url(track_data)
+        # Extract metadata
+        metadata = {}
+        if isinstance(track_info, list) and len(track_info) > 0:
+            track_data = track_info[0]
+        else:
+            track_data = track_info
+        
+        if isinstance(track_data, dict):
+            metadata['title'] = track_data.get('title', request.title)
+            metadata['track_number'] = track_data.get('trackNumber')
+            metadata['disc_number'] = track_data.get('volumeNumber')
+            metadata['date'] = track_data.get('streamStartDate', '').split('T')[0] if track_data.get('streamStartDate') else None
+            metadata['duration'] = track_data.get('duration')
+            
+            # Artist
+            artist_data = track_data.get('artist', {})
+            if isinstance(artist_data, dict):
+                metadata['artist'] = artist_data.get('name', request.artist)
+            else:
+                metadata['artist'] = request.artist
+            
+            # Album
+            album_data = track_data.get('album', {})
+            if isinstance(album_data, dict):
+                metadata['album'] = album_data.get('title')
+                metadata['total_tracks'] = album_data.get('numberOfTracks')
+                metadata['date'] = album_data.get('releaseDate', metadata.get('date'))
+                
+                # Cover art
+                cover_id = album_data.get('cover')
+                if cover_id:
+                    metadata['cover_url'] = f"https://resources.tidal.com/images/{cover_id.replace('-', '/')}/1280x1280.jpg"
+                
+                # Album artist
+                album_artist = album_data.get('artist', {})
+                if isinstance(album_artist, dict):
+                    metadata['album_artist'] = album_artist.get('name')
+        
+        print(f"✓ Track metadata: {metadata.get('artist')} - {metadata.get('title')}")
+        if metadata.get('album'):
+            print(f"  Album: {metadata.get('album')}")
+        
+        print(f"\n[2/4] Getting stream URL...")
+        stream_url = extract_stream_url(track_info)
         if not stream_url:
             del active_downloads[request.track_id]
             raise HTTPException(status_code=404, detail="Stream URL not found")
@@ -732,7 +842,7 @@ async def download_track_server_side(
         filename = re.sub(r'[<>:"/\\|?*]', '_', filename)
         filepath = DOWNLOAD_DIR / filename
         
-        print(f"\n[2/3] Target file: {filepath}")
+        print(f"\n[3/4] Target file: {filepath}")
         
         if filepath.exists():
             print(f"⚠️  File already exists, skipping download")
@@ -754,7 +864,8 @@ async def download_track_server_side(
             request.track_id,
             stream_url,
             filepath,
-            filename
+            filename,
+            metadata  # Pass metadata to download function
         )
         
         return {
