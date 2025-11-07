@@ -8,4 +8,4 @@ pydantic-settings==2.6.1
 python-dotenv
 aiohttp==3.11.11
 mutagen==1.47.0
-lrclib==1.0.1
+lrclibapi==0.3.1
