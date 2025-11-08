@@ -1,5 +1,3 @@
-Collecting workspace information# Tidaloader - Troi Tidal Downloader
-
 A full-stack web application for downloading high-quality music from Tidal with intelligent playlist generation via ListenBrainz/Troi integration. Features automatic metadata tagging, lyrics fetching, and organized file management.
 
 ## Features
