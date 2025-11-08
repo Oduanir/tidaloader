@@ -6,6 +6,7 @@ import { downloadManager } from "../utils/downloadManager";
 export function DownloadQueuePopout() {
   const [isOpen, setIsOpen] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
+  const [showCompleted, setShowCompleted] = useState(false);
 
   const queue = useDownloadStore((state) => state.queue);
   const downloading = useDownloadStore((state) => state.downloading);
@@ -53,9 +54,9 @@ export function DownloadQueuePopout() {
             />
           </svg>
           {totalActivity > 0 && (
-            <div class="absolute -top-2 -right-2 w-6 h-6 bg-red-400 text-white text-xs font-bold rounded-full flex items-center justify-center animate-pulse">
+            <span class="download-badge">
               {totalActivity > 99 ? "99+" : totalActivity}
-            </div>
+            </span>
           )}
         </div>
       </button>
@@ -275,33 +276,93 @@ export function DownloadQueuePopout() {
               )}
 
               {completed.length > 0 && (
-                <div class="p-4 bg-primary/10 rounded-xl border border-primary/20">
-                  <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-2">
-                      <svg
-                        class="w-5 h-5 text-primary"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="2"
-                          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                        />
-                      </svg>
-                      <span class="text-sm font-semibold text-primary">
-                        Completed: {completed.length} tracks
-                      </span>
+                <div>
+                  <button
+                    onClick={() => setShowCompleted(!showCompleted)}
+                    class="w-full p-4 bg-primary/10 rounded-xl border border-primary/20 hover:bg-primary/15 transition-colors"
+                  >
+                    <div class="flex items-center justify-between">
+                      <div class="flex items-center gap-2">
+                        <svg
+                          class="w-5 h-5 text-primary"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                          />
+                        </svg>
+                        <span class="text-sm font-semibold text-primary">
+                          Completed: {completed.length} tracks
+                        </span>
+                      </div>
+                      <div class="flex items-center gap-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            clearCompleted();
+                          }}
+                          class="text-xs text-text-muted hover:text-text font-medium px-2 py-1"
+                        >
+                          Clear
+                        </button>
+                        <svg
+                          class={`w-5 h-5 text-primary transition-transform duration-200 ${
+                            showCompleted ? "rotate-180" : ""
+                          }`}
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M19 9l-7 7-7-7"
+                          />
+                        </svg>
+                      </div>
                     </div>
-                    <button
-                      class="text-xs text-text-muted hover:text-text font-medium"
-                      onClick={clearCompleted}
-                    >
-                      Clear
-                    </button>
-                  </div>
+                  </button>
+
+                  {showCompleted && (
+                    <div class="mt-3 space-y-2 max-h-64 overflow-y-auto animate-slide-up">
+                      {completed.map((track) => (
+                        <div
+                          key={track.id}
+                          class="p-3 bg-primary/5 rounded-lg border border-primary/20"
+                        >
+                          <div class="flex items-center gap-2">
+                            <svg
+                              class="w-4 h-4 text-primary flex-shrink-0"
+                              fill="currentColor"
+                              viewBox="0 0 20 20"
+                            >
+                              <path
+                                fill-rule="evenodd"
+                                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                clip-rule="evenodd"
+                              />
+                            </svg>
+                            <div class="flex-1 min-w-0">
+                              <p class="text-sm font-medium text-text truncate">
+                                {track.artist} - {track.title}
+                              </p>
+                              {track.filename && (
+                                <p class="text-xs text-text-muted truncate mt-0.5">
+                                  {track.filename}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
 

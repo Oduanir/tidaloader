@@ -1,5 +1,6 @@
 import { api } from "../api/client";
 import { useDownloadStore } from "../stores/downloadStore";
+import { useToastStore } from "../stores/toastStore";
 
 const DOWNLOAD_MODE = "server";
 const API_BASE = "/api";
@@ -52,9 +53,6 @@ class DownloadManager {
     }
   }
 
-  /**
-   * Download track server-side (saves to backend/downloads/ or custom path)
-   */
   async downloadTrackServerSide(track) {
     const {
       startDownload,
@@ -63,6 +61,8 @@ class DownloadManager {
       updateProgress,
       quality,
     } = useDownloadStore.getState();
+
+    const addToast = useToastStore.getState().addToast;
 
     startDownload(track.id);
 
@@ -74,15 +74,14 @@ class DownloadManager {
 
     let eventSource = null;
     let downloadCompleted = false;
+    let currentQuality = quality;
 
     try {
       console.log(`⬇️ Downloading (server): ${track.artist} - ${track.title}`);
       console.log(`  Track ID: ${trackId}`);
-      console.log(`  Quality: ${quality}`);
+      console.log(`  Quality: ${currentQuality}`);
 
-      // Create a promise that resolves when download completes
       const downloadCompletionPromise = new Promise((resolve, reject) => {
-        // Connect to progress stream
         eventSource = new EventSource(
           `${API_BASE}/download/progress/${trackId}`
         );
@@ -99,7 +98,6 @@ class DownloadManager {
                 })`
               );
 
-              // Check if download is complete
               if (data.status === "completed" || data.progress >= 100) {
                 downloadCompleted = true;
                 console.log("  Download completed!");
@@ -108,13 +106,11 @@ class DownloadManager {
               }
             }
 
-            // Handle not found status
             if (data.status === "not_found") {
               console.error("  Download progress not found");
               reject(new Error("Download progress not found"));
             }
 
-            // Handle failed status
             if (data.status === "failed") {
               console.error("  Download failed on server");
               reject(new Error("Download failed on server"));
@@ -127,12 +123,10 @@ class DownloadManager {
         eventSource.onerror = (error) => {
           console.error("SSE connection error:", error);
 
-          // Don't immediately fail - might just be reconnecting
           if (!downloadCompleted) {
             console.log(
               "  SSE connection lost, but download may still be in progress..."
             );
-            // Give it a chance to reconnect
             setTimeout(() => {
               if (!downloadCompleted) {
                 eventSource?.close();
@@ -144,7 +138,6 @@ class DownloadManager {
           }
         };
 
-        // Timeout after 5 minutes
         setTimeout(() => {
           if (!downloadCompleted) {
             console.error("  Download timeout (5 minutes)");
@@ -154,15 +147,13 @@ class DownloadManager {
         }, 300000);
       });
 
-      // Give SSE connection time to establish
       await this.sleep(500);
 
-      // Start the download
       const requestBody = {
         track_id: Number(trackId),
         artist: String(track.artist || "Unknown Artist"),
         title: String(track.title || "Unknown Title"),
-        quality: String(quality),
+        quality: String(currentQuality),
       };
 
       console.log("Starting download...");
@@ -188,29 +179,93 @@ class DownloadManager {
           errorData = { detail: errorText || response.statusText };
         }
 
-        throw new Error(errorData.detail || `HTTP ${response.status}`);
-      }
+        if (
+          currentQuality === "HI_RES_LOSSLESS" &&
+          (errorData.detail?.includes("not found") ||
+            errorData.detail?.includes("404"))
+        ) {
+          console.log(
+            "  HI_RES_LOSSLESS not available, falling back to LOSSLESS..."
+          );
+          addToast(
+            `HI_RES quality not available for "${track.title}". Trying LOSSLESS...`,
+            "warning"
+          );
 
-      const result = await response.json();
-      console.log("Download started:", result);
+          eventSource?.close();
 
-      // Wait for download to complete via SSE
-      if (result.status === "downloading") {
-        console.log("  Waiting for download to complete...");
-        await downloadCompletionPromise;
-      } else if (result.status === "exists") {
-        // File already exists, mark as complete immediately
-        downloadCompleted = true;
-      }
+          currentQuality = "LOSSLESS";
+          requestBody.quality = "LOSSLESS";
 
-      completeDownload(track.id, result.filename);
-      console.log(`✓ Downloaded: ${result.filename}`);
-      if (result.path) {
-        console.log(`  Location: ${result.path}`);
+          const fallbackResponse = await fetch(`${API_BASE}/download/track`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(requestBody),
+          });
+
+          if (!fallbackResponse.ok) {
+            const fallbackErrorText = await fallbackResponse.text();
+            let fallbackErrorData;
+            try {
+              fallbackErrorData = JSON.parse(fallbackErrorText);
+            } catch {
+              fallbackErrorData = {
+                detail: fallbackErrorText || fallbackResponse.statusText,
+              };
+            }
+            throw new Error(
+              fallbackErrorData.detail || `HTTP ${fallbackResponse.status}`
+            );
+          }
+
+          const fallbackResult = await fallbackResponse.json();
+          console.log("Fallback download started:", fallbackResult);
+
+          if (fallbackResult.status === "downloading") {
+            console.log("  Waiting for fallback download to complete...");
+            await downloadCompletionPromise;
+          } else if (fallbackResult.status === "exists") {
+            downloadCompleted = true;
+          }
+
+          completeDownload(track.id, fallbackResult.filename);
+          console.log(`✓ Downloaded (LOSSLESS): ${fallbackResult.filename}`);
+          addToast(
+            `Downloaded "${track.title}" in LOSSLESS quality`,
+            "success"
+          );
+          if (fallbackResult.path) {
+            console.log(`  Location: ${fallbackResult.path}`);
+          }
+        } else {
+          throw new Error(errorData.detail || `HTTP ${response.status}`);
+        }
+      } else {
+        const result = await response.json();
+        console.log("Download started:", result);
+
+        if (result.status === "downloading") {
+          console.log("  Waiting for download to complete...");
+          await downloadCompletionPromise;
+        } else if (result.status === "exists") {
+          downloadCompleted = true;
+        }
+
+        completeDownload(track.id, result.filename);
+        console.log(`✓ Downloaded: ${result.filename}`);
+        if (result.path) {
+          console.log(`  Location: ${result.path}`);
+        }
       }
     } catch (error) {
       console.error(`✗ Download failed: ${track.title}`, error);
       failDownload(track.id, error.message);
+      addToast(
+        `Failed to download "${track.title}": ${error.message}`,
+        "error"
+      );
     } finally {
       if (eventSource) {
         eventSource.close();
@@ -220,9 +275,6 @@ class DownloadManager {
     await this.sleep(1000);
   }
 
-  /**
-   * Download track client-side (browser Downloads folder)
-   */
   async downloadTrackClientSide(track) {
     const {
       startDownload,

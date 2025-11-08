@@ -88,6 +88,10 @@
   .search-result-card.selected {
     @apply bg-primary/5 border-primary/50 shadow-sm;
   }
+
+  .download-badge {
+    @apply absolute -top-1 -right-1 min-w-[24px] h-6 px-1.5 bg-red-400 text-white text-xs font-bold rounded-full flex items-center justify-center shadow-md;
+  }
 }
 
 @layer utilities {
