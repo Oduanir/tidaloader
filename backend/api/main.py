@@ -16,6 +16,7 @@ from contextlib import asynccontextmanager
 import json
 import aiohttp
 import os
+import unicodedata
 from dotenv import load_dotenv
 from mutagen.flac import FLAC, Picture
 from mutagen.mp4 import MP4, MP4Cover
@@ -57,14 +58,43 @@ def log_info(msg: str):
 def log_step(step: str, msg: str):
     print(f"{Colors.MAGENTA}[{step}]{Colors.RESET} {msg}")
 
-def decode_unicode_escapes(text: str) -> str:
+def fix_unicode(text: str) -> str:
+    if not text:
+        return text
+    
     try:
-        return text.encode('utf-8').decode('unicode-escape')
+        if '\\u' in text:
+            text = text.encode('raw_unicode_escape').decode('unicode_escape')
     except:
-        try:
-            return bytes(text, 'utf-8').decode('unicode-escape')
-        except:
-            return text
+        pass
+    
+    try:
+        text = unicodedata.normalize('NFC', text)
+    except:
+        pass
+    
+    return text
+
+def romanize_japanese(text: str) -> Optional[str]:
+    if not text:
+        return None
+    
+    has_japanese = any('\u3040' <= c <= '\u30ff' or '\u4e00' <= c <= '\u9fff' for c in text)
+    
+    if not has_japanese:
+        return None
+    
+    try:
+        import pykakasi
+        kakasi = pykakasi.kakasi()
+        result = kakasi.convert(text)
+        romanized = ' '.join([item['hepburn'] for item in result])
+        return romanized
+    except ImportError:
+        return None
+    except Exception as e:
+        log_warning(f"Romanization failed: {e}")
+        return None
 
 app = FastAPI(title="Troi Tidal Downloader API")
 
@@ -196,6 +226,56 @@ def extract_stream_url(track_data) -> Optional[str]:
                 log_error(f"Failed to decode manifest: {e}")
     
     return None
+
+async def search_track_with_fallback(artist: str, title: str, track_obj) -> bool:
+    artist_fixed = fix_unicode(artist)
+    title_fixed = fix_unicode(title)
+    
+    log_info(f"Searching: {artist_fixed} - {title_fixed}")
+    
+    query = f"{artist_fixed} {title_fixed}"
+    result = tidal_client.search_tracks(query)
+    
+    if result:
+        tidal_tracks = extract_items(result, 'tracks')
+        if tidal_tracks and len(tidal_tracks) > 0:
+            first_track = tidal_tracks[0]
+            track_obj.tidal_id = first_track.get('id')
+            track_obj.tidal_exists = True
+            
+            album_data = first_track.get('album', {})
+            track_obj.album = album_data.get('title') if isinstance(album_data, dict) else None
+            
+            log_success(f"Found on Tidal - ID: {track_obj.tidal_id}")
+            return True
+    
+    romanized_title = romanize_japanese(title_fixed)
+    romanized_artist = romanize_japanese(artist_fixed)
+    
+    if romanized_title or romanized_artist:
+        search_artist = romanized_artist if romanized_artist else artist_fixed
+        search_title = romanized_title if romanized_title else title_fixed
+        
+        log_info(f"Trying romanized: {search_artist} - {search_title}")
+        
+        query_romanized = f"{search_artist} {search_title}"
+        result = tidal_client.search_tracks(query_romanized)
+        
+        if result:
+            tidal_tracks = extract_items(result, 'tracks')
+            if tidal_tracks and len(tidal_tracks) > 0:
+                first_track = tidal_tracks[0]
+                track_obj.tidal_id = first_track.get('id')
+                track_obj.tidal_exists = True
+                
+                album_data = first_track.get('album', {})
+                track_obj.album = album_data.get('title') if isinstance(album_data, dict) else None
+                
+                log_success(f"Found via romanization - ID: {track_obj.tidal_id}")
+                return True
+    
+    log_error("Not found on Tidal")
+    return False
 
 async def download_file_async(track_id: int, stream_url: str, filepath: Path, filename: str, metadata: dict = None):
     try:
@@ -572,10 +652,10 @@ async def troi_generate_with_progress(username: str, playlist_type: str, progres
         tracks = TroiIntegration.generate_playlist(username, playlist_type)
         
         for track in tracks:
-            track.title = decode_unicode_escapes(track.title)
-            track.artist = decode_unicode_escapes(track.artist)
+            track.title = fix_unicode(track.title)
+            track.artist = fix_unicode(track.artist)
             if track.album:
-                track.album = decode_unicode_escapes(track.album)
+                track.album = fix_unicode(track.album)
         
         await queue.put({
             "type": "info",
@@ -601,37 +681,7 @@ async def troi_generate_with_progress(username: str, playlist_type: str, progres
             
             log_info(f"[{i}/{len(tracks)}] Validating: {display_text}")
             
-            query = f"{track.artist} {track.title}"
-            result = tidal_client.search_tracks(query)
-            
-            if result:
-                tidal_tracks = extract_items(result, 'tracks')
-                
-                if tidal_tracks and len(tidal_tracks) > 0:
-                    first_track = tidal_tracks[0]
-                    track.tidal_id = first_track.get('id')
-                    track.tidal_exists = True
-                    
-                    album_data = first_track.get('album', {})
-                    track.album = album_data.get('title') if isinstance(album_data, dict) else None
-                    
-                    await queue.put({
-                        "type": "success",
-                        "message": f"Found on Tidal - ID: {track.tidal_id}",
-                        "progress": i,
-                        "total": len(tracks)
-                    })
-                    
-                    log_success(f"Found on Tidal - ID: {track.tidal_id}")
-                else:
-                    await queue.put({
-                        "type": "error",
-                        "message": "Not found on Tidal",
-                        "progress": i,
-                        "total": len(tracks)
-                    })
-                    
-                    log_error("Not found on Tidal")
+            await search_track_with_fallback(track.artist, track.title, track)
             
             validated_tracks.append({
                 "title": track.title,
@@ -707,7 +757,6 @@ async def troi_progress_stream(
             "Content-Type": "text/event-stream; charset=utf-8"
         }
     )
-
 @app.get("/api/search/tracks")
 async def search_tracks(q: str, username: str = Depends(require_auth)):
     try:
