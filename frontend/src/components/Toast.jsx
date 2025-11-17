@@ -6,7 +6,7 @@ export function Toast() {
   const removeToast = useToastStore((state) => state.removeToast);
 
   return (
-    <div class="fixed top-4 right-4 left-4 sm:left-auto z-50 flex flex-col gap-3 max-w-sm w-full sm:w-auto mx-auto sm:mx-0 px-0 sm:px-4">
+    <div class="fixed top-4 right-4 left-4 sm:left-auto z-50 flex flex-col gap-3 max-w-sm sm:w-full mx-auto sm:mx-0 px-0 sm:px-4">
       {toasts.map((toast) => (
         <div
           key={toast.id}

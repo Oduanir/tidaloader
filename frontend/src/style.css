@@ -10,6 +10,12 @@
   body {
     @apply m-0 p-0 bg-background text-text font-sans antialiased;
   }
+
+  @supports (padding: max(0px)) {
+    body {
+      padding-bottom: max(0px, env(safe-area-inset-bottom));
+    }
+  }
 }
 
 @layer components {
@@ -99,6 +105,10 @@
 
   .custom-scrollbar::-webkit-scrollbar-thumb {
     @apply bg-border hover:bg-primary/30 rounded-full;
+  }
+
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0);
   }
 }
 
@@ -204,5 +214,11 @@
 
   .animate-popout-close {
     animation: popout-close 0.3s cubic-bezier(0.4, 0, 0.6, 1);
+  }
+
+  @media (max-width: 639px) {
+    .animate-popout-open {
+      animation: slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
   }
 }
