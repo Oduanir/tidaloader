@@ -20,19 +20,18 @@ export function App() {
   }
 
   return (
-    <div class="min-h-screen bg-background">
-      {/* Header with logout button */}
-      <header class="bg-surface border-b border-border-light px-4 py-3 shadow-sm">
+    <div class="min-h-screen bg-background pb-20 sm:pb-6">
+      <header class="bg-surface border-b border-border-light px-4 py-3 shadow-sm sticky top-0 z-30">
         <div class="max-w-7xl mx-auto flex justify-between items-center">
-          <div class="flex items-center gap-3">
-            <div class="flex items-center justify-center w-10 h-10 bg-primary rounded-xl">
-              <span class="text-2xl">🦑</span>
+          <div class="flex items-center gap-2 sm:gap-3">
+            <div class="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 bg-primary rounded-xl">
+              <span class="text-xl sm:text-2xl">🦑</span>
             </div>
-            <h1 class="text-xl sm:text-2xl font-bold text-text">Tidaloader</h1>
+            <h1 class="text-lg sm:text-xl md:text-2xl font-bold text-text">Tidaloader</h1>
           </div>
           <button
             onClick={clearCredentials}
-            class="flex items-center gap-2 px-4 py-2 bg-surface-alt hover:bg-background-alt border border-border text-text-muted hover:text-text rounded-lg text-sm transition-all duration-200"
+            class="flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 bg-surface-alt hover:bg-background-alt border border-border text-text-muted hover:text-text rounded-lg text-xs sm:text-sm transition-all duration-200"
           >
             <svg
               class="w-4 h-4"
@@ -54,17 +53,17 @@ export function App() {
 
       <Toast />
       <DownloadQueuePopout />
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-          <h1 class="text-2xl sm:text-3xl font-bold text-text">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+        <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
+          <h1 class="text-xl sm:text-2xl md:text-3xl font-bold text-text">
             Troi Tidal Downloader
           </h1>
           <button
-            class="btn-surface flex items-center gap-2 self-start sm:self-auto"
+            class="btn-surface flex items-center gap-2 self-start sm:self-auto text-sm sm:text-base"
             onClick={() => setShowSettings(!showSettings)}
           >
             <svg
-              class="w-5 h-5"
+              class="w-4 h-4 sm:w-5 sm:h-5"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -87,14 +86,14 @@ export function App() {
         </header>
 
         {showSettings && (
-          <div class="card p-6 mb-6 animate-slide-up">
+          <div class="card p-4 sm:p-6 mb-4 sm:mb-6 animate-slide-up">
             <QualitySelector />
           </div>
         )}
 
-        <nav class="flex gap-2 mb-6 border-b border-border pb-0">
+        <nav class="flex gap-1 sm:gap-2 mb-4 sm:mb-6 border-b border-border pb-0 overflow-x-auto">
           <button
-            class={`px-6 py-3 font-medium rounded-t-lg transition-all duration-200 ${
+            class={`px-4 sm:px-6 py-2 sm:py-3 font-medium rounded-t-lg transition-all duration-200 whitespace-nowrap text-sm sm:text-base ${
               activeTab === "search"
                 ? "bg-surface text-primary border-b-2 border-primary -mb-px"
                 : "text-text-muted hover:text-text hover:bg-surface-alt"
@@ -104,7 +103,7 @@ export function App() {
             Custom Search
           </button>
           <button
-            class={`px-6 py-3 font-medium rounded-t-lg transition-all duration-200 ${
+            class={`px-4 sm:px-6 py-2 sm:py-3 font-medium rounded-t-lg transition-all duration-200 whitespace-nowrap text-sm sm:text-base ${
               activeTab === "troi"
                 ? "bg-surface text-primary border-b-2 border-primary -mb-px"
                 : "text-text-muted hover:text-text hover:bg-surface-alt"
@@ -115,7 +114,7 @@ export function App() {
           </button>
         </nav>
 
-        <main class="card p-6 mb-6 min-h-[400px]">
+        <main class="card p-4 sm:p-6 mb-6 min-h-[400px]">
           {activeTab === "search" && <SearchBar />}
           {activeTab === "troi" && <TroiGenerator />}
         </main>
