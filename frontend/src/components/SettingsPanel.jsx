@@ -35,6 +35,9 @@ export function SettingsPanel() {
     const runBeets = useDownloadStore((state) => state.runBeets);
     const setRunBeets = useDownloadStore((state) => state.setRunBeets);
 
+    const embedLyrics = useDownloadStore((state) => state.embedLyrics);
+    const setEmbedLyrics = useDownloadStore((state) => state.setEmbedLyrics);
+
     return (
         <div class="space-y-6">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -119,6 +122,27 @@ export function SettingsPanel() {
                             type="checkbox"
                             checked={runBeets}
                             onChange={(e) => setRunBeets(e.target.checked)}
+                            class="sr-only peer"
+                        />
+                        <div class="w-11 h-6 bg-surface peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                    </label>
+                </div>
+
+                <div class={`flex items-center justify-between p-2 rounded-lg transition-colors ${quality.startsWith('OPUS') ? 'opacity-50 cursor-not-allowed' : 'hover:bg-surface-alt'}`}>
+                    <div class="space-y-0.5">
+                        <label class={`text-sm font-semibold text-text ${quality.startsWith('OPUS') ? 'cursor-not-allowed' : 'cursor-pointer'}`} onClick={() => !quality.startsWith('OPUS') && setEmbedLyrics(!embedLyrics)}>Embed Lyrics (FFmpeg)</label>
+                        <p class="text-xs text-text-muted">
+                            {quality.startsWith('OPUS')
+                                ? "Not available for Opus format"
+                                : "Use FFmpeg to embed lyrics (resolves sync issues)"}
+                        </p>
+                    </div>
+                    <label class={`relative inline-flex items-center ${quality.startsWith('OPUS') ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
+                        <input
+                            type="checkbox"
+                            checked={embedLyrics && !quality.startsWith('OPUS')}
+                            onChange={(e) => setEmbedLyrics(e.target.checked)}
+                            disabled={quality.startsWith('OPUS')}
                             class="sr-only peer"
                         />
                         <div class="w-11 h-6 bg-surface peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>

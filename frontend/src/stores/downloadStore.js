@@ -13,6 +13,7 @@ export const useDownloadStore = create(
       organizationTemplate: "{Artist}/{Album}/{TrackNumber} - {Title}",
       groupCompilations: true,
       runBeets: false,
+      embedLyrics: false,
 
       addToQueue: (tracks) =>
         set((state) => {
@@ -134,6 +135,7 @@ export const useDownloadStore = create(
       setOrganizationTemplate: (template) => set({ organizationTemplate: template }),
       setGroupCompilations: (enabled) => set({ groupCompilations: enabled }),
       setRunBeets: (enabled) => set({ runBeets: enabled }),
+      setEmbedLyrics: (enabled) => set({ embedLyrics: enabled }),
 
       getStats: () => {
         const state = get();
@@ -264,6 +266,7 @@ export const useDownloadStore = create(
         organizationTemplate: state.organizationTemplate,
         groupCompilations: state.groupCompilations,
         runBeets: state.runBeets,
+        embedLyrics: state.embedLyrics,
       }),
     }
   )

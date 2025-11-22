@@ -155,6 +155,7 @@ class DownloadTrackRequest(BaseModel):
     organization_template: Optional[str] = "{Artist}/{Album}/{TrackNumber} - {Title}"
     group_compilations: Optional[bool] = True
     run_beets: Optional[bool] = False
+    embed_lyrics: Optional[bool] = False
 
 DOWNLOAD_DIR = Path(settings.music_dir)
 DOWNLOAD_DIR.mkdir(parents=True, exist_ok=True)
@@ -413,7 +414,8 @@ async def download_file_async(
     metadata: dict = None,
     organization_template: str = "{Artist}/{Album}/{TrackNumber} - {Title}",
     group_compilations: bool = True,
-    run_beets: bool = False
+    run_beets: bool = False,
+    embed_lyrics: bool = False
 ):
     processed_path = filepath
     try:
@@ -500,6 +502,9 @@ async def download_file_async(
         if metadata:
             log_step("4/4", "Writing metadata tags...")
             await write_metadata_tags(processed_path, metadata)
+            
+            if embed_lyrics:
+                await embed_lyrics_with_ffmpeg(processed_path, metadata)
         
         # Organize file
         log_step("4/4", "Organizing file...")
@@ -895,6 +900,70 @@ async def run_beets_import(path: Path):
             
     except Exception as e:
         log_warning(f"Failed to run beets import: {e}")
+
+async def embed_lyrics_with_ffmpeg(filepath: Path, metadata: dict):
+    """Embed lyrics into the audio file using FFmpeg"""
+    try:
+        import subprocess
+        import shutil
+        
+        # Check if ffmpeg is installed
+        try:
+            subprocess.run(["ffmpeg", "-version"], check=True, capture_output=True)
+        except (FileNotFoundError, subprocess.CalledProcessError):
+            log_warning("FFmpeg not found. Skipping lyrics embedding.")
+            return
+
+        lyrics = metadata.get('synced_lyrics') or metadata.get('plain_lyrics')
+        if not lyrics:
+            log_info("No lyrics found to embed.")
+            return
+
+        log_step("3.8/4", f"Embedding lyrics with FFmpeg...")
+        
+        # Create a temporary lyrics file
+        lyrics_path = filepath.with_suffix('.lyrics.txt')
+        with open(lyrics_path, 'w', encoding='utf-8') as f:
+            f.write(lyrics)
+            
+        output_path = filepath.with_suffix('.temp' + filepath.suffix)
+        
+        # Construct FFmpeg command
+        # ffmpeg -i input -map 0 -c copy -metadata LYRICS="..." output
+        cmd = [
+            "ffmpeg", "-y", "-i", str(filepath),
+            "-map", "0", "-c", "copy",
+            "-metadata", f"LYRICS={lyrics}",
+            str(output_path)
+        ]
+        
+        # If we have synced lyrics, we might want to try adding them as specific tags too if needed
+        # But the user request specifically mentioned -metadata LYRICS="..."
+        
+        process = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
+        )
+        stdout, stderr = await process.communicate()
+        
+        if process.returncode == 0:
+            # Replace original file with new file
+            shutil.move(str(output_path), str(filepath))
+            log_success("Lyrics embedded with FFmpeg")
+        else:
+            log_warning(f"FFmpeg lyrics embedding failed: {stderr.decode()}")
+            if output_path.exists():
+                output_path.unlink()
+                
+        # Cleanup temp lyrics file
+        if lyrics_path.exists():
+            lyrics_path.unlink()
+            
+    except Exception as e:
+        log_warning(f"Failed to embed lyrics with FFmpeg: {e}")
+        import traceback
+        traceback.print_exc()
 
 async def organize_file_by_metadata(temp_filepath: Path, metadata: dict, template: str = "{Artist}/{Album}/{TrackNumber} - {Title}", group_compilations: bool = True) -> Path:
     try:
@@ -1824,7 +1893,8 @@ async def download_track_server_side(
             metadata,
             request.organization_template,
             request.group_compilations,
-            request.run_beets
+            request.run_beets,
+            request.embed_lyrics
         )
         
         return {

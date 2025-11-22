@@ -560,7 +560,7 @@ class DownloadManager {
 
       await this.sleep(500);
 
-      const { organizationTemplate, groupCompilations, runBeets } = useDownloadStore.getState();
+      const { organizationTemplate, groupCompilations, runBeets, embedLyrics } = useDownloadStore.getState();
 
       const requestBody = {
         track_id: Number(trackId),
@@ -570,6 +570,7 @@ class DownloadManager {
         organization_template: organizationTemplate,
         group_compilations: groupCompilations,
         run_beets: runBeets,
+        embed_lyrics: embedLyrics,
       };
 
       console.log("Starting download...");
