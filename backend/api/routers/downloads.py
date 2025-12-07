@@ -178,12 +178,32 @@ async def download_track_server_side(
                     "message": "Download already in progress"
                 }
             elif saved_state['status'] == 'completed':
-                log_warning(f"Track {request.track_id} already completed")
-                return {
-                    "status": "exists",
-                    "filename": saved_state.get('metadata', {}).get('title', 'Completed'),
-                    "message": "Download already completed"
-                }
+                # Check if the file still exists at the stored path
+                saved_path = saved_state.get('metadata', {}).get('final_path')
+                saved_filename = saved_state.get('metadata', {}).get('title', '')
+                file_still_exists = False
+                
+                if saved_path:
+                    file_still_exists = Path(saved_path).exists()
+                elif saved_state.get('filename'):
+                    # Fallback: check if filename exists anywhere in DOWNLOAD_DIR (quick check)
+                    for ext in ['.m4a', '.flac', '.mp3', '.opus']:
+                        potential_path = DOWNLOAD_DIR / f"{saved_state.get('filename')}"
+                        if potential_path.exists():
+                            file_still_exists = True
+                            break
+                
+                if file_still_exists:
+                    log_warning(f"Track {request.track_id} already completed")
+                    return {
+                        "status": "exists",
+                        "filename": saved_filename or 'Completed',
+                        "message": "Download already completed"
+                    }
+                else:
+                    # File was deleted, clear the completed state and allow re-download
+                    log_info(f"Track {request.track_id} was in completed state but file not found, allowing re-download")
+                    download_state_manager.clear_download(request.track_id)
         
         print(f"\n{'='*60}")
         print(f"Download Request:")

@@ -124,7 +124,10 @@ async def download_file_async(
         if run_beets:
             await run_beets_import(final_path)
             
-        # Update state to completed
+        # Update state to completed - store the final path for fast file existence checks
+        if metadata is None:
+            metadata = {}
+        metadata['final_path'] = str(final_path)
         download_state_manager.set_completed(track_id, final_path.name, metadata)
         
         file_size_mb = final_path.stat().st_size / 1024 / 1024
