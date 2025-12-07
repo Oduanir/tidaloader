@@ -43,11 +43,11 @@ Heavy inspired from https://github.com/uimaxbai/tidal-ui and using https://githu
 
 ## Screenshots
 <p align="center">
-  <img src="https://i.imgur.com/JrBzovz.png" width="45%" alt="Search Interface">
+  <img src="https://i.imgur.com/as8iNqV.png" width="45%" alt="Album Page">
   <img src="https://i.imgur.com/5mtKF52.png" width="45%" alt="Artist Page">
 </p>
 <p align="center">
-  <img src="https://i.imgur.com/as8iNqV.png" width="90%" alt="Download Management">
+  <img src="https://i.imgur.com/JrBzovz.png" width="90%" alt="Download Management">
 </p>
 
 ## Project Structure
