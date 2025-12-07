@@ -41,6 +41,15 @@ Heavy inspired from https://github.com/uimaxbai/tidal-ui and using https://githu
 - **MP3 256kbps / 128kbps** (`MP3_256`, `MP3_128`): Transcoded using ffmpeg/libmp3lame
 - **AAC 320kbps / 96kbps** (`HIGH`, `LOW`): Direct AAC streams from Tidal
 
+## Screenshots
+<p align="center">
+  <img src="https://i.imgur.com/JrBzovz.png" width="45%" alt="Search Interface">
+  <img src="https://i.imgur.com/5mtKF52.png" width="45%" alt="Artist Page">
+</p>
+<p align="center">
+  <img src="https://i.imgur.com/as8iNqV.png" width="90%" alt="Download Management">
+</p>
+
 ## Project Structure
 
 ```

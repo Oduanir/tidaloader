@@ -11,6 +11,7 @@ export function ArtistPage({ artistId, onBack }) {
   const [albums, setAlbums] = useState([]);
   const [selectedTracks, setSelectedTracks] = useState(new Set());
   const [selectedAlbums, setSelectedAlbums] = useState(new Set());
+  const [modalAlbum, setModalAlbum] = useState(null);
   const [error, setError] = useState(null);
 
   const addToast = useToastStore((state) => state.addToast);
@@ -498,8 +499,8 @@ export function ArtistPage({ artistId, onBack }) {
                       <div class={`
                         absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center shadow-md transition-all duration-200
                         ${isSelected
-                          ? "bg-primary text-white custom-scale-100 opacity-100"
-                          : "bg-black/40 text-white/50 custom-scale-90 opacity-0 group-hover:opacity-100"}
+                          ? "bg-primary text-white scale-100 opacity-100"
+                          : "bg-black/40 text-white/50 scale-90 opacity-0 group-hover:opacity-100"}
                       `}>
                         {isSelected ? (
                           <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -508,6 +509,17 @@ export function ArtistPage({ artistId, onBack }) {
                         ) : (
                           <div class="w-4 h-4 rounded-full border-2 border-white/50"></div>
                         )}
+                      </div>
+
+                      {/* Inspect Button - Desktop Only */}
+                      <div
+                        onClick={(e) => { e.stopPropagation(); setModalAlbum(album); }}
+                        class="hidden md:flex absolute bottom-2 left-2 w-8 h-8 rounded-full bg-black/40 hover:bg-primary hover:text-white backdrop-blur-sm items-center justify-center text-white/80 transition-all transform scale-90 hover:scale-100 opacity-0 group-hover:opacity-100 z-10"
+                        title="View Tracks"
+                      >
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
                       </div>
                     </div>
 
@@ -555,6 +567,192 @@ export function ArtistPage({ artistId, onBack }) {
           </p>
         </div>
       )}
+      {modalAlbum && (
+        <AlbumTracksModal
+          album={modalAlbum}
+          onClose={() => setModalAlbum(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+function AlbumTracksModal({ album, onClose }) {
+  const [tracks, setTracks] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const addToast = useToastStore((state) => state.addToast);
+
+  useEffect(() => {
+    const fetchTracks = async () => {
+      try {
+        const result = await api.get(`/album/${album.id}/tracks`);
+        const items = result.items || [];
+        setTracks(items);
+        // Select all by default
+        setSelectedIds(new Set(items.map(t => t.id)));
+      } catch (err) {
+        addToast(`Failed to load tracks: ${err.message}`, "error");
+        onClose();
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchTracks();
+  }, [album.id]);
+
+  const toggleTrack = (id) => {
+    const newSet = new Set(selectedIds);
+    if (newSet.has(id)) newSet.delete(id);
+    else newSet.add(id);
+    setSelectedIds(newSet);
+  };
+
+  const handleDownload = () => {
+    const tracksToDownload = tracks
+      .filter(t => selectedIds.has(t.id))
+      .map((t, index) => ({
+        tidal_id: t.id,
+        title: t.title,
+        artist: t.artist?.name || album.artist?.name,
+        album: album.title,
+        cover: album.cover,
+        track_number: t.trackNumber || index + 1,
+        tidal_exists: true,
+      }));
+
+    downloadManager.addToServerQueue(tracksToDownload).then(res => {
+      addToast(`Added ${res.added} tracks to queue`, "success");
+      onClose();
+    });
+  };
+
+  return (
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+      <div class="w-full max-w-3xl bg-surface border border-border rounded-xl shadow-2xl flex flex-col max-h-[85vh] animate-scale-up overflow-hidden">
+
+        {/* Header */}
+        <div class="p-4 border-b border-border/50 flex items-center justify-between bg-surface-alt/50">
+          <div class="flex items-center gap-4">
+            {album.cover && (
+              <img
+                src={api.getCoverUrl(album.cover, "160")}
+                alt={album.title}
+                class="w-16 h-16 rounded-lg shadow-sm object-cover"
+              />
+            )}
+            <div>
+              <h3 class="text-lg font-bold text-text line-clamp-1">{album.title}</h3>
+              <p class="text-xs text-text-muted">
+                {tracks.length} tracks
+                {album.releaseDate && !isNaN(new Date(album.releaseDate)) && ` • ${new Date(album.releaseDate).getFullYear()}`}
+              </p>
+            </div>
+          </div>
+          <button onClick={onClose} class="p-2 hover:bg-surface-alt rounded-full text-text-muted hover:text-text transition-colors">
+            <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Toolbar */}
+        <div class="p-3 border-b border-border/50 flex items-center justify-between bg-surface">
+          <div class="flex gap-2">
+            <button
+              onClick={() => setSelectedIds(new Set(tracks.map(t => t.id)))}
+              class="text-xs font-medium px-3 py-1.5 rounded-md hover:bg-surface-alt text-text transition-colors"
+            >
+              Select All
+            </button>
+            <button
+              onClick={() => setSelectedIds(new Set())}
+              class="text-xs font-medium px-3 py-1.5 rounded-md hover:bg-surface-alt text-text transition-colors"
+            >
+              Deselect
+            </button>
+          </div>
+          {selectedIds.size > 0 && (
+            <button
+              onClick={handleDownload}
+              class="btn-primary text-xs px-4 py-1.5 flex items-center gap-2"
+            >
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              Add {selectedIds.size} Tracks
+            </button>
+          )}
+        </div>
+
+        {/* Track List */}
+        <div class="flex-1 overflow-y-auto p-4 custom-scrollbar bg-surface/50">
+          {loading ? (
+            <div class="flex flex-col items-center justify-center py-12 space-y-3">
+              <div class="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+              <p class="text-sm text-text-muted">Loading tracks...</p>
+            </div>
+          ) : (
+            <div class="grid gap-2">
+              {tracks.map((track) => {
+                const isSelected = selectedIds.has(track.id);
+                return (
+                  <div
+                    key={track.id}
+                    onClick={() => toggleTrack(track.id)}
+                    class={`
+                      flex items-center gap-2 p-2 rounded-lg cursor-pointer border transition-all duration-150
+                      ${isSelected
+                        ? "bg-primary/5 border-primary/30"
+                        : "bg-surface hover:bg-surface-alt border-transparent hover:border-border"}
+                    `}
+                  >
+                    <span class="w-6 text-center text-xs text-text-muted font-medium flex-shrink-0">
+                      {track.trackNumber}
+                    </span>
+
+                    <div class="relative flex-shrink-0 mr-1">
+                      {album.cover ? (
+                        <img
+                          src={api.getCoverUrl(album.cover, "80")}
+                          alt={album.title}
+                          class={`w-10 h-10 rounded-md object-cover shadow-sm transition-opacity duration-200 ${isSelected ? "opacity-100" : "opacity-90"}`}
+                        />
+                      ) : (
+                        <div class="w-10 h-10 rounded-md bg-surface-alt flex items-center justify-center text-text-muted">
+                          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+                          </svg>
+                        </div>
+                      )}
+                    </div>
+
+                    <div class="flex-1 min-w-0">
+                      <p class={`text-sm font-medium truncate ${isSelected ? "text-primary" : "text-text"}`}>
+                        {track.title}
+                      </p>
+                      <div class="flex items-center gap-2 text-[10px] text-text-muted">
+                        <span>{formatDuration(track.duration)}</span>
+                        {track.audioQuality && track.audioQuality !== "LOSSLESS" && (
+                          <span class="px-1 py-0.5 rounded border border-border/50 text-[9px]">
+                            {track.audioQuality}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div class={`w-5 h-5 rounded-full border flex items-center justify-center transition-colors ${isSelected ? "bg-primary border-primary text-white" : "border-text-muted/30 text-transparent"}`}>
+                      <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
