@@ -1,9 +1,19 @@
 # Tidaloader
 
-A modern, full-stack application for downloading high-quality music from Tidal. Features intelligent playlist generation via ListenBrainz/Troi, automatic metadata tagging, lyrics synchronization, and efficient queue management.
+A full-stack web application for downloading high-quality music from Tidal with intelligent playlist generation via ListenBrainz/Troi integration. Features automatic metadata tagging, lyrics fetching, and organized file management.
 
-> [!WARNING]  
-> **Educational Use Only**: This project is for educational and personal use. Valid Tidal subscription required. Do not use for piracy.
+Heavy inspired from https://github.com/uimaxbai/tidal-ui and using https://github.com/sachinsenal0x64/hifi
+
+> [!IMPORTANT]
+>
+> # Project Terms
+
+- We do not encourage piracy. This project is made purely for educational and personal use.
+  If you somehow download copyrighted content, you are solely responsible for complying with the relevant laws in your country.
+
+- The Tidaloader Project assumes no responsibility for any misuse or legal violations arising from the use of this project.
+
+- This project does not claim ownership of any music or audio content. All rights remain with their respective copyright holders. Users are **encouraged** to support artists and rights owners by maintaining a valid Tidal subscription. Tidaloader serves solely as a downloading interface for personal, non-commercial use.
 
 ## Screenshots
 
