@@ -4,22 +4,27 @@ from api.state import troi_progress_queues
 from api.utils.logging import log_info, log_error, log_success
 from api.utils.text import fix_unicode
 from api.services.search import search_track_with_fallback
-from troi_integration import TroiIntegration
+from api.clients.listenbrainz import ListenBrainzClient
 
 async def troi_generate_with_progress(username: str, playlist_type: str, progress_id: str):
     queue = asyncio.Queue()
     troi_progress_queues[progress_id] = queue
     
+    client = ListenBrainzClient()
+    
     try:
         await queue.put({
             "type": "info",
-            "message": f"Generating Troi playlist for {username}...",
+            "message": f"Fetching Weekly Jams playlist for {username}...",
             "progress": 0,
             "total": 0
         })
         
-        tracks = TroiIntegration.generate_playlist(username, playlist_type)
+        tracks = await client.get_weekly_jams(username)
         
+        if not tracks:
+            raise Exception("No 'Weekly Jams' or 'Weekly Exploration' playlist found for this user.")
+
         for track in tracks:
             track.title = fix_unicode(track.title)
             track.artist = fix_unicode(track.artist)
@@ -28,7 +33,7 @@ async def troi_generate_with_progress(username: str, playlist_type: str, progres
         
         await queue.put({
             "type": "info",
-            "message": f"Generated {len(tracks)} tracks from Troi",
+            "message": f"Found {len(tracks)} tracks from ListenBrainz",
             "progress": 0,
             "total": len(tracks)
         })
@@ -79,7 +84,7 @@ async def troi_generate_with_progress(username: str, playlist_type: str, progres
         })
         
     except Exception as e:
-        log_error(f"Troi generation error: {str(e)}")
+        log_error(f"ListenBrainz generation error: {str(e)}")
         await queue.put({
             "type": "error",
             "message": str(e),
@@ -87,4 +92,5 @@ async def troi_generate_with_progress(username: str, playlist_type: str, progres
             "total": 0
         })
     finally:
+        await client.close()
         await queue.put(None)

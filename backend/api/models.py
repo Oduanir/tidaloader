@@ -1,4 +1,5 @@
 from typing import Optional
+from dataclasses import dataclass
 from pydantic import BaseModel
 
 class TroiGenerateRequest(BaseModel):
@@ -34,6 +35,18 @@ class TroiTrackResponse(BaseModel):
     tidal_id: Optional[int]
     tidal_exists: bool
     album: Optional[str]
+
+@dataclass
+class PlaylistTrack:
+    """Track from generated playlist"""
+    title: str
+    artist: str
+    mbid: Optional[str] = None
+    tidal_id: Optional[int] = None
+    tidal_artist_id: Optional[int] = None
+    tidal_album_id: Optional[int] = None
+    tidal_exists: bool = False
+    album: Optional[str] = None
 
 class DownloadTrackRequest(BaseModel):
     track_id: int
