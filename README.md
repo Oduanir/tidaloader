@@ -1,6 +1,6 @@
 # Tidaloader
 
-A full-stack web application for downloading high-quality music from Tidal with intelligent playlist generation via ListenBrainz/Troi integration. Features automatic metadata tagging, lyrics fetching, and organized file management.
+A full-stack web application for downloading high-quality music from Tidal with intelligent playlist generation via ListenBrainz integration. Features automatic metadata tagging, lyrics fetching, and organized file management.
 
 Heavily inspired from https://github.com/uimaxbai/tidal-ui and using https://github.com/sachinsenal0x64/hifi
 
@@ -32,7 +32,7 @@ Heavily inspired from https://github.com/uimaxbai/tidal-ui and using https://git
   - **Opus**: High-efficiency 192kbps VBR
   - **MP3**: 320kbps / 128kbps (Transcoded)
   - **AAC**: 320kbps / 96kbps
-- **Smart Playlists**: Generate "Daily Jams" using ListenBrainz history + Troi.
+- **Smart Playlists**: Generate "Daily Jams" using ListenBrainz history.
 - **Rich Metadata**: Auto-tagging with MusicBrainz IDs, Artist/Album organization, and embedded covers.
 - **Intelligent Library**: Strict ID-based album matching prevents duplicates. Artist covers are automatically fetched and cached for a beautiful, persistent browsing experience.
 - **Lyrics**: Synced (`.lrc`) and plain text lyrics via LrcLib.
@@ -154,7 +154,7 @@ Configure these in your `docker-compose.yml` or `.env` file.
 
 ## Credits
 
-Inspired by [tidal-ui](https://github.com/uimaxbai/tidal-ui). Playlist generation by ListenBrainz Troi.
+Inspired by [tidal-ui](https://github.com/uimaxbai/tidal-ui). Playlist generation by ListenBrainz.
 
 ## License
 

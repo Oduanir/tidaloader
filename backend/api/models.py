@@ -2,7 +2,7 @@ from typing import Optional
 from dataclasses import dataclass
 from pydantic import BaseModel
 
-class TroiGenerateRequest(BaseModel):
+class ListenBrainzGenerateRequest(BaseModel):
     username: str
     playlist_type: str = "periodic-jams"
 
@@ -28,7 +28,7 @@ class PlaylistSearchResult(BaseModel):
     numberOfTracks: Optional[int] = None
     cover: Optional[str] = None
 
-class TroiTrackResponse(BaseModel):
+class ListenBrainzTrackResponse(BaseModel):
     title: str
     artist: str
     mbid: Optional[str]

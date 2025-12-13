@@ -1,14 +1,14 @@
 import asyncio
 import json
-from api.state import troi_progress_queues
+from api.state import lb_progress_queues
 from api.utils.logging import log_info, log_error, log_success
 from api.utils.text import fix_unicode
 from api.services.search import search_track_with_fallback
 from api.clients.listenbrainz import ListenBrainzClient
 
-async def troi_generate_with_progress(username: str, playlist_type: str, progress_id: str):
+async def listenbrainz_generate_with_progress(username: str, playlist_type: str, progress_id: str):
     queue = asyncio.Queue()
-    troi_progress_queues[progress_id] = queue
+    lb_progress_queues[progress_id] = queue
     
     client = ListenBrainzClient()
     

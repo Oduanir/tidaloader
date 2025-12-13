@@ -4,23 +4,23 @@ import asyncio
 from fastapi import APIRouter, BackgroundTasks, Depends
 from fastapi.responses import StreamingResponse
 
-from api.models import TroiGenerateRequest
+from api.models import ListenBrainzGenerateRequest
 from api.auth import require_auth
-from api.state import troi_progress_queues
-from api.services.troi import troi_generate_with_progress
+from api.state import lb_progress_queues
+from api.services.listenbrainz import listenbrainz_generate_with_progress
 
 router = APIRouter()
 
-@router.post("/api/troi/generate")
-async def generate_troi_playlist(
-    request: TroiGenerateRequest,
+@router.post("/api/listenbrainz/generate")
+async def generate_listenbrainz_playlist(
+    request: ListenBrainzGenerateRequest,
     background_tasks: BackgroundTasks,
     username: str = Depends(require_auth)
 ):
     progress_id = str(uuid.uuid4())
     
     background_tasks.add_task(
-        troi_generate_with_progress,
+        listenbrainz_generate_with_progress,
         request.username,
         request.playlist_type,
         progress_id
@@ -28,17 +28,17 @@ async def generate_troi_playlist(
     
     return {"progress_id": progress_id}
 
-@router.get("/api/troi/progress/{progress_id}")
-async def troi_progress_stream(
+@router.get("/api/listenbrainz/progress/{progress_id}")
+async def listenbrainz_progress_stream(
     progress_id: str,
     username: str = Depends(require_auth)
 ):
     async def event_generator():
-        if progress_id not in troi_progress_queues:
+        if progress_id not in lb_progress_queues:
             yield f"data: {json.dumps({'type': 'error', 'message': 'Invalid progress ID'})}\n\n"
             return
         
-        queue = troi_progress_queues[progress_id]
+        queue = lb_progress_queues[progress_id]
         
         try:
             while True:
@@ -54,8 +54,8 @@ async def troi_progress_stream(
                     yield f"data: {json.dumps({'type': 'ping'})}\n\n"
                     
         finally:
-            if progress_id in troi_progress_queues:
-                del troi_progress_queues[progress_id]
+            if progress_id in lb_progress_queues:
+                del lb_progress_queues[progress_id]
     
     return StreamingResponse(
         event_generator(),

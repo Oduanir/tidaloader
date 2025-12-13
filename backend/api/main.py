@@ -12,7 +12,7 @@ load_dotenv()
 # Fix path to include backend root
 sys.path.append(str(Path(__file__).parent.parent))
 
-from api.routers import system, troi, search, downloads, library
+from api.routers import system, listenbrainz, search, downloads, library
 from api.clients import tidal_client
 from api.utils.logging import log_warning, log_info
 from download_state import download_state_manager
@@ -50,7 +50,7 @@ app.add_middleware(
 
 # Include Routers
 app.include_router(system.router)
-app.include_router(troi.router)
+app.include_router(listenbrainz.router)
 app.include_router(search.router)
 app.include_router(downloads.router)
 app.include_router(library.router)

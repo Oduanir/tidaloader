@@ -5,7 +5,7 @@ import logo from "./assets/tsunami.svg";
 import { useAuthStore } from "./store/authStore";
 import { Login } from "./components/Login";
 import { SearchBar } from "./components/SearchBar";
-import { TroiGenerator } from "./components/TroiGenerator";
+import { WeeklyJamsGenerator } from "./components/WeeklyJamsGenerator";
 import { DownloadQueuePopout } from "./components/DownloadQueuePopout";
 import { SettingsPanel } from "./components/SettingsPanel";
 import { LibraryPage } from "./components/LibraryPage";
@@ -155,13 +155,13 @@ export function App() {
             Custom Search
           </button>
           <button
-            class={`px-6 py-3 font-medium rounded-t-lg transition-all duration-200 ${activeTab === "troi"
+            class={`px-6 py-3 font-medium rounded-t-lg transition-all duration-200 ${activeTab === "weekly-jams"
               ? "bg-surface text-primary border-b-2 border-primary -mb-px"
               : "text-text-muted hover:text-text hover:bg-surface-alt"
               }`}
-            onClick={() => setActiveTab("troi")}
+            onClick={() => setActiveTab("weekly-jams")}
           >
-            Troi Playlist
+            Weekly Jams
           </button>
           <button
             class={`px-6 py-3 font-medium rounded-t-lg transition-all duration-200 ${activeTab === "library"
@@ -176,7 +176,7 @@ export function App() {
 
         <main class="card p-6 mb-6 min-h-[400px]">
           {activeTab === "search" && <SearchBar />}
-          {activeTab === "troi" && <TroiGenerator />}
+          {activeTab === "weekly-jams" && <WeeklyJamsGenerator />}
           {activeTab === "library" && <LibraryPage />}
         </main>
       </div>

@@ -149,22 +149,22 @@ class ApiClient {
   }
 
   /**
-   * Generate Troi playlist
+   * Generate ListenBrainz playlist
    */
-  generateTroiPlaylist(username, playlistType = "periodic-jams") {
-    return this.post("/troi/generate", {
+  generateListenBrainzPlaylist(username, playlistType = "periodic-jams") {
+    return this.post("/listenbrainz/generate", {
       username,
       playlist_type: playlistType,
     });
   }
 
   /**
-   * Create Troi progress stream
+   * Create ListenBrainz progress stream
    */
-  createTroiProgressStream(progressId) {
+  createListenBrainzProgressStream(progressId) {
     const authHeader = useAuthStore.getState().getAuthHeader();
     const url = new URL(
-      `${API_BASE}/troi/progress/${progressId}`,
+      `${API_BASE}/listenbrainz/progress/${progressId}`,
       window.location.origin
     );
 

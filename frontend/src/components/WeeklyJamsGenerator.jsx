@@ -4,7 +4,7 @@ import { api } from "../api/client";
 import { downloadManager } from "../utils/downloadManager";
 import { useToastStore } from "../stores/toastStore";
 
-export function TroiGenerator() {
+export function WeeklyJamsGenerator() {
   const [username, setUsername] = useState("");
   const [loading, setLoading] = useState(false);
   const [tracks, setTracks] = useState([]);
@@ -38,12 +38,12 @@ export function TroiGenerator() {
     setValidationTotal(0);
 
     try {
-      const { progress_id } = await api.generateTroiPlaylist(
+      const { progress_id } = await api.generateListenBrainzPlaylist(
         username.trim(),
         "periodic-jams"
       );
 
-      const eventSource = api.createTroiProgressStream(progress_id);
+      const eventSource = api.createListenBrainzProgressStream(progress_id);
 
       eventSource.onmessage = (event) => {
         const data = JSON.parse(event.data);

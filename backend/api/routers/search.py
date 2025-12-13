@@ -3,7 +3,7 @@ from api.auth import require_auth
 from api.clients import tidal_client
 from api.utils.logging import log_info, log_error
 from api.utils.extraction import extract_items
-from api.models import TrackSearchResult, TroiTrackResponse, PlaylistSearchResult
+from api.models import TrackSearchResult, ListenBrainzTrackResponse, PlaylistSearchResult
 
 router = APIRouter()
 

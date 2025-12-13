@@ -1,2 +1,2 @@
 active_downloads = {}
-troi_progress_queues = {}
+lb_progress_queues = {}
