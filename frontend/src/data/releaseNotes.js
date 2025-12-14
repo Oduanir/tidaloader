@@ -1,5 +1,13 @@
 export const releaseNotes = [
     {
+        version: "1.0.4",
+        date: "2025-12-14",
+        title: "Download Manager Authentication Fix",
+        changes: [
+            "Fixed DownloadManager to properly respect the user's authentication state."
+        ]
+    },
+    {
         version: "1.0.3",
         date: "2025-12-14",
         title: "Weekly Jams & Core Optimizations",

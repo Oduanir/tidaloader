@@ -14,6 +14,7 @@
 import { api } from "../api/client";
 import { useDownloadStore } from "../stores/downloadStore";
 import { useToastStore } from "../stores/toastStore";
+import { useAuthStore } from "../store/authStore";
 
 class DownloadManager {
   constructor() {
@@ -35,13 +36,38 @@ class DownloadManager {
     console.log("🔄 Initializing download manager...");
     this.initialized = true;
 
-    // Start periodic sync with server queue
-    this.startSync();
+    // Subscribe to auth state changes
+    useAuthStore.subscribe((state) => {
+      if (state.isAuthenticated) {
+        if (!this.syncInterval) {
+          console.log("✅ User authenticated - starting queue sync");
+          this.startSync();
+        }
+      } else {
+        if (this.syncInterval) {
+          console.log("🔒 User logged out - stopping queue sync");
+          this.stopSync();
+        }
+        // Clear local queue state on logout
+        useDownloadStore.getState().setServerQueueState({
+          queue: [],
+          downloading: [],
+          completed: [],
+          failed: []
+        });
+      }
+    });
 
-    // Get initial queue state
-    await this.syncQueueState();
+    // Initial check
+    const { isAuthenticated } = useAuthStore.getState();
+    if (isAuthenticated) {
+      this.startSync();
+      await this.syncQueueState();
+    } else {
+      console.log("⏳ Waiting for authentication to start queue sync");
+    }
 
-    console.log("✅ Download manager initialized - server handles queue processing");
+    console.log("✅ Download manager initialized - waiting for auth");
   }
 
   /**
@@ -79,6 +105,11 @@ class DownloadManager {
    */
   async syncQueueState() {
     try {
+      // Double check auth before request to avoid 401s
+      if (!useAuthStore.getState().isAuthenticated) {
+        return;
+      }
+
       const serverState = await api.getQueue();
       if (!serverState) return;
 
