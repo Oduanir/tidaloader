@@ -11,7 +11,7 @@ import aiofiles
 from api.settings import settings, DOWNLOAD_DIR, PLAYLISTS_DIR
 from api.clients import tidal_client
 from api.services.files import get_output_relative_path
-from api.utils.logging import log_info, log_error, log_warning
+# from api.utils.logging import log_info, log_error, log_warning (Using standard logger instead)
 from queue_manager import queue_manager, QueueItem
 
 logger = logging.getLogger(__name__)

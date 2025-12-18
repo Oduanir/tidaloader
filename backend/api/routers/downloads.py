@@ -208,16 +208,7 @@ async def download_track_server_side(
                     log_info(f"Track {request.track_id} was in completed state but file not found, allowing re-download")
                     download_state_manager.clear_download(request.track_id)
         
-        print(f"\n{'='*60}")
-        print(f"Download Request:")
-        print(f"  Track ID: {request.track_id}")
-        print(f"  Artist: {request.artist}")
-        print(f"  Title: {request.title}")
-        print(f"  Album: {request.album}")
-        print(f"  Track#: {request.track_number}")
-        print(f"  Cover: {request.cover}")
-        print(f"  Quality: {request.quality}")
-        print(f"{'='*60}\n")
+
         
         requested_quality = request.quality.upper() if request.quality else "LOSSLESS"
         

@@ -37,20 +37,15 @@ class QueueItem:
     cover: Optional[str] = None
     quality: str = "HIGH"
     added_at: str = ""
-    added_at: str = ""
     added_by: str = "unknown"  # Could track which client added it
     
 
     tidal_track_id: Optional[str] = None
     tidal_artist_id: Optional[str] = None
     tidal_album_id: Optional[str] = None
-    tidal_artist_id: Optional[str] = None
-    tidal_album_id: Optional[str] = None
     
 
     album_artist: Optional[str] = None # Capture Album Artist context from Frontend
-    
-    album_artist: Optional[str] = None
     
 
     target_format: Optional[str] = None
