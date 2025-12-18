@@ -255,7 +255,8 @@ class PlaylistManager:
             if found_rel_path:
                 duration = track.get('duration', -1)
                 m3u8_lines.append(f"#EXTINF:{duration},{artist_name} - {title}")
-                m3u8_lines.append(f"../{found_rel_path}")
+                # Use ../../ because m3u8 is now in tidaloader_playlists/{PlaylistName}/
+                m3u8_lines.append(f"../../{found_rel_path}")
             else:
                 # File missing
                 if playlist.auto_download_tracks:
@@ -292,7 +293,7 @@ class PlaylistManager:
                     
                     duration = track.get('duration', -1)
                     m3u8_lines.append(f"#EXTINF:{duration},{artist_name} - {title}")
-                    m3u8_lines.append(f"../{predicted_path}")
+                    m3u8_lines.append(f"../../{predicted_path}")
 
         # 3. Queue downloads
         queued_count = 0
