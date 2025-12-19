@@ -357,6 +357,14 @@ class ApiClient {
     return this.post(`/playlists/${uuid}/sync`);
   }
 
+  getPlaylistFiles(uuid) {
+    return this.get(`/playlists/${uuid}/files`);
+  }
+
+  deletePlaylistFiles(uuid, files) {
+    return this.post(`/playlists/${uuid}/delete-files`, { files });
+  }
+
   // ============================================================================
   // QUEUE API METHODS
   // ============================================================================

@@ -404,4 +404,97 @@ class PlaylistManager:
         except Exception as e:
             logger.error(f"Error downloading cover: {e}")
 
+    def get_playlist_files(self, uuid: str) -> List[str]:
+        """
+        Parses the .m3u8 file and returns a list of file paths relative to DOWNLOAD_DIR.
+        """
+        playlist = self.get_playlist(uuid)
+        if not playlist:
+            raise ValueError("Playlist not found")
+            
+        m3u8_path = PLAYLISTS_DIR / playlist.path
+        if not m3u8_path.exists():
+            return []
+            
+        files = []
+        try:
+            with open(m3u8_path, 'r', encoding='utf-8') as f:
+                lines = f.readlines()
+                
+            for line in lines:
+                line = line.strip()
+                if not line or line.startswith('#'):
+                    continue
+                    
+                # Line is a relative path like "../../Artist/Album/Song.flac"
+                # We need to resolve this to be relative to DOWNLOAD_DIR
+                # m3u8 is at PLAYLISTS_DIR / {PlaylistName} / {PlaylistName}.m3u8
+                # So we resolve it relative to m3u8_path.parent
+                
+                try:
+                    full_path = (m3u8_path.parent / line).resolve()
+                    
+                    # Security check: Must be within DOWNLOAD_DIR
+                    if not str(full_path).startswith(str(DOWNLOAD_DIR.resolve())):
+                        logger.warning(f"Security: Path {full_path} outside music dir")
+                        continue
+                        
+                    if full_path.exists() and full_path.is_file():
+                        # Return path relative to DOWNLOAD_DIR for display
+                        rel_path = full_path.relative_to(DOWNLOAD_DIR)
+                        files.append(str(rel_path))
+                        
+                except Exception as e:
+                    logger.warning(f"Failed to resolve path {line}: {e}")
+                    continue
+                    
+        except Exception as e:
+            logger.error(f"Failed to read playlist file: {e}")
+            raise
+            
+        return sorted(files)
+
+    def delete_playlist_files(self, uuid: str, files_to_delete: List[str]) -> Dict[str, Any]:
+        """
+        Deletes the specified files associated with the playlist.
+        files_to_delete: List of paths relative to DOWNLOAD_DIR
+        """
+        playlist = self.get_playlist(uuid)
+        if not playlist:
+            raise ValueError("Playlist not found")
+
+        deleted_count = 0
+        errors = []
+        
+        for file_rel_path in files_to_delete:
+            try:
+                # Sanitize path - Prevent directory traversal
+                if '..' in file_rel_path or file_rel_path.startswith('/'):
+                    errors.append(f"Invalid path: {file_rel_path}")
+                    continue
+                    
+                full_path = (DOWNLOAD_DIR / file_rel_path).resolve()
+                
+                # Security Double Check
+                if not str(full_path).startswith(str(DOWNLOAD_DIR.resolve())):
+                    errors.append(f"Path outside music directory: {file_rel_path}")
+                    continue
+                
+                if full_path.exists() and full_path.is_file():
+                    full_path.unlink()
+                    deleted_count += 1
+                    logger.info(f"Deleted file: {full_path}")
+                else:
+                    errors.append(f"File not found: {file_rel_path}")
+                    
+            except Exception as e:
+                logger.error(f"Failed to delete {file_rel_path}: {e}")
+                errors.append(f"Error deleting {file_rel_path}: {str(e)}")
+                
+        return {
+            "status": "success" if not errors else "partial_success",
+            "deleted_count": deleted_count,
+            "errors": errors
+        }
+
 playlist_manager = PlaylistManager()

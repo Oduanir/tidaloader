@@ -17,6 +17,9 @@ class MonitorPlaylistRequest(BaseModel):
     frequency: Literal["manual", "daily", "weekly", "monthly"] = "manual"
     quality: Literal["LOW", "HIGH", "LOSSLESS", "HI_RES"] = "LOSSLESS"
 
+class DeleteFilesRequest(BaseModel):
+    files: List[str]
+
 # Endpoints
 @router.get("/api/playlists/search")
 async def search_playlists_proxy(
@@ -88,4 +91,30 @@ async def sync_playlist_manual(
         raise
     except Exception as e:
         logger.error(f"Sync failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/api/playlists/{uuid}/files")
+async def get_playlist_files_endpoint(uuid: str, user: str = Depends(require_auth)):
+    try:
+        files = playlist_manager.get_playlist_files(uuid)
+        return {"status": "success", "files": files}
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        logger.error(f"Failed to get playlist files: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/api/playlists/{uuid}/delete-files")
+async def delete_playlist_files_endpoint(
+    uuid: str, 
+    request: DeleteFilesRequest,
+    user: str = Depends(require_auth)
+):
+    try:
+        result = playlist_manager.delete_playlist_files(uuid, request.files)
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        logger.error(f"Failed to delete playlist files: {e}")
         raise HTTPException(status_code=500, detail=str(e))
