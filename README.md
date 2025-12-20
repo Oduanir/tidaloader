@@ -1,4 +1,18 @@
-# Tidaloader
+<h1 align="center"> Tidaloader </h1>
+
+<p align="center">
+  <!-- Key Stats -->
+  <a href="https://hub.docker.com/repository/docker/rayz3r0/tidaloader/"><img src="https://img.shields.io/badge/docker-package-2496ED?style=flat-square&logo=docker&logoColor=white" alt="Docker Package"></a>
+  <a href="https://github.com/RayZ3R0/tidaloader/blob/main/LICENSE"><img src="https://img.shields.io/github/license/RayZ3R0/tidaloader?style=flat-square&color=5D6D7E" alt="License"></a>
+  <a href="https://github.com/RayZ3R0/tidaloader/stargazers"><img src="https://img.shields.io/github/stars/RayZ3R0/tidaloader?style=flat-square&color=E67E22" alt="Stars"></a>
+  <a href="https://github.com/RayZ3R0/tidaloader/commits/main"><img src="https://img.shields.io/github/last-commit/RayZ3R0/tidaloader?style=flat-square&color=5D6D7E" alt="Last Commit"></a>
+  
+  <br>
+  
+  <!-- Tech Stack -->
+  <img src="https://img.shields.io/badge/Python-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python">
+  <img src="https://img.shields.io/badge/Preact-673AB7?style=flat-square&logo=preact&logoColor=white" alt="Preact">
+</p>
 
 A full-stack web application for downloading high-quality music from Tidal with intelligent playlist generation via ListenBrainz integration. Features automatic metadata tagging, lyrics fetching, and organized file management.
 
