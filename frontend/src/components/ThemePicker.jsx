@@ -244,11 +244,11 @@ export function ThemePicker() {
     };
 
     return (
-        <div class="flex items-center gap-2" ref={dropdownRef}>
+        <div class="flex items-center gap-1 sm:gap-2" ref={dropdownRef}>
             {/* Dedicated Light/Dark Toggle */}
             <button
                 onClick={toggleLightDark}
-                class="p-2.5 rounded-lg hover:bg-surface-alt text-text-muted hover:text-text 
+                class="p-2 sm:p-2.5 rounded-lg hover:bg-surface-alt text-text-muted hover:text-text 
                 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background"
                 aria-label={isLightMode ? "Switch to Dark Mode" : "Switch to Light Mode"}
                 title={isLightMode ? "Switch to Dark Mode" : "Switch to Light Mode"}
@@ -278,13 +278,13 @@ export function ThemePicker() {
                 {/* Theme Toggle Button with enhanced tooltip */}
                 <button
                     onClick={() => setIsOpen(!isOpen)}
-                    class="group p-2.5 rounded-lg hover:bg-surface-alt focus:outline-none 
+                    class="group p-2 sm:p-2.5 rounded-lg hover:bg-surface-alt focus:outline-none 
           focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background
           text-text transition-all duration-200 relative"
                     aria-label="Change theme"
                 >
                     <div
-                        class="w-7 h-7 rounded-md border border-border overflow-hidden grid grid-cols-2 gap-px
+                        class="w-6 h-6 sm:w-7 sm:h-7 rounded-md border border-border overflow-hidden grid grid-cols-2 gap-px
           transition-transform duration-200 group-hover:scale-105"
                     >
                         {themePreviewColors[theme] ? themePreviewColors[theme].map((color, i) => (
@@ -313,41 +313,47 @@ export function ThemePicker() {
 
                 {/* Theme Dropdown - Improved mobile layout */}
                 {isOpen && (
-                    <div
-                        class="absolute right-0 mt-2 w-72 sm:w-64 py-2 bg-surface border border-border 
-            rounded-lg shadow-lg z-50 theme-fade-in"
-                        role="dialog"
-                        aria-label="Theme Picker"
-                    >
-                        <div class="px-4 py-2 border-b border-border">
-                            <div class="flex items-center justify-between">
-                                <h3 class="text-sm font-medium">Select Theme</h3>
-                                <button
-                                    onClick={() => setIsOpen(false)}
-                                    class="text-text-muted hover:text-text rounded-full p-1 
-                  hover:bg-surface-alt transition-colors"
-                                    aria-label="Close theme picker"
-                                >
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <line x1="18" y1="6" x2="6" y2="18"></line>
-                                        <line x1="6" y1="6" x2="18" y2="18"></line>
-                                    </svg>
-                                </button>
-                            </div>
-
-                            {/* Search input with icon */}
-                            <div class="relative mt-2">
-                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                    </svg>
+                    <>
+                        {/* Mobile backdrop */}
+                        <div
+                            class="fixed inset-0 bg-black/30 z-40 sm:hidden"
+                            onClick={() => setIsOpen(false)}
+                        />
+                        <div
+                            class="fixed inset-x-0 bottom-0 sm:absolute sm:inset-auto sm:right-0 sm:top-full sm:mt-2 w-full sm:w-72 py-2 bg-surface border-t sm:border border-border 
+                rounded-t-2xl sm:rounded-lg shadow-lg z-50 theme-fade-in max-h-[70vh] sm:max-h-none flex flex-col"
+                            role="dialog"
+                            aria-label="Theme Picker"
+                        >
+                            <div class="px-4 py-2 border-b border-border flex-shrink-0">
+                                <div class="flex items-center justify-between">
+                                    <h3 class="text-sm font-medium">Select Theme</h3>
+                                    <button
+                                        onClick={() => setIsOpen(false)}
+                                        class="text-text-muted hover:text-text rounded-full p-1.5 sm:p-1 
+                      hover:bg-surface-alt transition-colors"
+                                        aria-label="Close theme picker"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                                        </svg>
+                                    </button>
                                 </div>
-                                <input
-                                    ref={searchInputRef}
-                                    type="text"
-                                    placeholder="Search themes..."
-                                    value={searchQuery}
-                                    onInput={(e) => setSearchQuery(e.target.value)}
+
+                                {/* Search input with icon */}
+                                <div class="relative mt-2">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                        </svg>
+                                    </div>
+                                    <input
+                                        ref={searchInputRef}
+                                        type="text"
+                                        placeholder="Search themes..."
+                                        value={searchQuery}
+                                        onInput={(e) => setSearchQuery(e.target.value)}
                                     class="w-full pl-10 pr-8 py-2 bg-surface-alt border border-border rounded-md
                 text-sm text-text placeholder:text-text-muted focus:outline-none
                 focus:ring-1 focus:ring-primary"
@@ -505,7 +511,8 @@ export function ThemePicker() {
                                 <span class="text-text-muted">{Object.keys(themePreviewColors).length} themes</span>
                             </div>
                         </div>
-                    </div>
+                        </div>
+                    </>
                 )}
 
                 {/* Styles for thin scrollbars and animations */}

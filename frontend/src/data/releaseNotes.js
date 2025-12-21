@@ -1,5 +1,20 @@
 export const releaseNotes = [
     {
+        version: "1.2.6",
+        date: "2025-12-21",
+        title: "Mobile Responsive UI",
+        changes: [
+            "Complete mobile responsiveness overhaul - all pages now work great on phones and tablets.",
+            "Redesigned navigation tabs with compact labels and horizontal scrolling on mobile.",
+            "Improved Release Notes modal with full-screen mobile layout and proper safe areas.",
+            "Enhanced Download Queue popout with better mobile button sizing and panel layout.",
+            "Fixed Search type selector (Track/Album/Artist/Playlist) with 4-column grid on mobile.",
+            "Improved Tidal Playlists 'Official only' toggle with mobile-friendly stacked layout.",
+            "Better Theme Picker dropdown with full-width bottom sheet on mobile devices.",
+            "Optimized Library grid, Settings panel, and all component spacing for small screens."
+        ]
+    },
+    {
         version: "1.2.5",
         date: "2025-12-20",
         title: "Spotify M3U8 Playlist Generation",

@@ -105,42 +105,44 @@ export function PlaylistSearch({ onSyncStarted }) {
 
     return (
         <>
-            <div class="space-y-6">
-                <div class="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
-                    <input
-                        type="text"
-                        value={query}
-                        onInput={(e) => setQuery(e.target.value)}
-                        onKeyPress={(e) => e.key === "Enter" && handleSearch()}
-                        placeholder="Search or paste a Tidal playlist URL..."
-                        disabled={loading}
-                        class="input-field flex-1"
-                    />
-                    <button
-                        onClick={handleSearch}
-                        disabled={loading || !query.trim()}
-                        class="btn-primary flex items-center justify-center gap-2 sm:w-auto"
-                    >
-                        {loading ? "Searching..." : "Search"}
-                    </button>
+            <div class="space-y-4 sm:space-y-6">
+                <div class="flex flex-col gap-3">
+                    <div class="flex flex-col sm:flex-row gap-2 sm:gap-3">
+                        <input
+                            type="text"
+                            value={query}
+                            onInput={(e) => setQuery(e.target.value)}
+                            onKeyPress={(e) => e.key === "Enter" && handleSearch()}
+                            placeholder="Search or paste a Tidal playlist URL..."
+                            disabled={loading}
+                            class="input-field flex-1 text-sm"
+                        />
+                        <button
+                            onClick={handleSearch}
+                            disabled={loading || !query.trim()}
+                            class="btn-primary flex items-center justify-center gap-2 w-full sm:w-auto text-sm"
+                        >
+                            {loading ? "Searching..." : "Search"}
+                        </button>
+                    </div>
 
-                    <div class="flex items-center gap-3 bg-surface-alt/50 px-3 py-1.5 rounded-lg border border-border-light self-center">
-                        <label class="text-sm font-medium text-text cursor-pointer select-none" onClick={() => setOfficialOnly(!officialOnly)}>
+                    <div class="flex items-center justify-between sm:justify-start gap-3 bg-surface-alt/50 px-3 py-2 rounded-lg border border-border-light">
+                        <label class="text-xs sm:text-sm font-medium text-text cursor-pointer select-none" onClick={() => setOfficialOnly(!officialOnly)}>
                             Official Tidal Playlists only
                         </label>
-                        <label class="relative inline-flex items-center cursor-pointer">
+                        <label class="relative inline-flex items-center cursor-pointer flex-shrink-0">
                             <input
                                 type="checkbox"
                                 checked={officialOnly}
                                 onChange={(e) => setOfficialOnly(e.target.checked)}
                                 class="sr-only peer"
                             />
-                            <div class="w-11 h-6 bg-surface border border-border peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                            <div class="w-9 h-5 sm:w-11 sm:h-6 bg-surface border border-border peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 sm:after:h-5 sm:after:w-5 after:transition-all peer-checked:bg-primary"></div>
                         </label>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                <div class="grid grid-cols-2 xs:grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-4">
                     {displayedResults.map((playlist) => (
                         <div
                             key={playlist.uuid || playlist.id}

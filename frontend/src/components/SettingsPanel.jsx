@@ -48,10 +48,10 @@ export function SettingsPanel() {
     }, []);
 
     return (
-        <div class="space-y-6">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="space-y-4 sm:space-y-6">
+            <div class="grid grid-cols-1 gap-4 sm:gap-6">
                 {/* Audio Quality */}
-                <div class="space-y-3">
+                <div class="space-y-2 sm:space-y-3">
                     <label for="quality-select" class="block text-sm font-semibold text-text">
                         Audio Quality
                     </label>
@@ -59,7 +59,7 @@ export function SettingsPanel() {
                         id="quality-select"
                         value={quality}
                         onChange={(e) => setQuality(e.target.value)}
-                        class="input-field cursor-pointer w-full"
+                        class="input-field cursor-pointer w-full text-sm"
                     >
                         {QUALITY_OPTIONS.map((option) => (
                             <option key={option.value} value={option.value}>
@@ -70,7 +70,7 @@ export function SettingsPanel() {
                 </div>
 
                 {/* File Organization */}
-                <div class="space-y-3">
+                <div class="space-y-2 sm:space-y-3">
                     <label for="template-select" class="block text-sm font-semibold text-text">
                         File Organization
                     </label>
@@ -78,7 +78,7 @@ export function SettingsPanel() {
                         id="template-select"
                         value={organizationTemplate}
                         onChange={(e) => setOrganizationTemplate(e.target.value)}
-                        class="input-field cursor-pointer w-full mb-2"
+                        class="input-field cursor-pointer w-full mb-2 text-sm"
                     >
                         {TEMPLATE_OPTIONS.map((option) => (
                             <option key={option.value} value={option.value}>
@@ -103,7 +103,7 @@ export function SettingsPanel() {
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-border">
+            <div class="grid grid-cols-1 gap-3 sm:gap-6 pt-4 border-t border-border">
                 {/* Toggles */}
                 <div class="flex items-center justify-between p-2 rounded-lg hover:bg-surface-alt transition-colors">
                     <div class="space-y-0.5">

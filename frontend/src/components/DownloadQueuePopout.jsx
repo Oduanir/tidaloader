@@ -106,7 +106,7 @@ export function DownloadQueuePopout() {
     <>
       {!isOpen && (
         <div
-          class="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-40 flex items-center gap-3"
+          class="fixed bottom-3 right-3 sm:bottom-6 sm:right-6 z-40 flex items-center gap-2 sm:gap-3"
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
         >
@@ -162,11 +162,11 @@ export function DownloadQueuePopout() {
           {totalInQueue > 0 && (
             <button
               onClick={handleToggleDownloads}
-              class="w-12 h-12 rounded-full bg-surface hover:bg-surface-alt border-2 border-border text-text shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center"
+              class="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-surface hover:bg-surface-alt border-2 border-border text-text shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center"
               title={isRunning ? "Pause Downloads" : "Start Downloads"}
             >
               {isRunning ? (
-                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="currentColor" viewBox="0 0 20 20">
                   <path
                     fill-rule="evenodd"
                     d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z"
@@ -174,7 +174,7 @@ export function DownloadQueuePopout() {
                   />
                 </svg>
               ) : (
-                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="currentColor" viewBox="0 0 20 20">
                   <path
                     fill-rule="evenodd"
                     d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
@@ -187,7 +187,7 @@ export function DownloadQueuePopout() {
 
           <button
             onClick={() => setIsOpen(true)}
-            class="relative w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-primary hover:bg-primary-dark text-white shadow-xl hover:shadow-2xl transition-all duration-200 flex items-center justify-center group"
+            class="relative w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-primary hover:bg-primary-dark text-white shadow-xl hover:shadow-2xl transition-all duration-200 flex items-center justify-center group"
           >
             {currentDownload && (
               <svg
@@ -220,7 +220,7 @@ export function DownloadQueuePopout() {
 
             <div class="relative z-10">
               <svg
-                class="w-6 h-6 sm:w-7 sm:h-7"
+                class="w-5 h-5 sm:w-7 sm:h-7"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -233,7 +233,7 @@ export function DownloadQueuePopout() {
                 />
               </svg>
               {totalActivity > 0 && (
-                <span class="absolute -top-1 -right-1 sm:-top-2 sm:-right-2 min-w-[18px] sm:min-w-[20px] h-[18px] sm:h-5 px-1 sm:px-1.5 bg-red-500 text-white text-[9px] sm:text-[10px] font-bold rounded-full flex items-center justify-center shadow-lg">
+                <span class="absolute -top-1 -right-1 sm:-top-2 sm:-right-2 min-w-[16px] sm:min-w-[20px] h-4 sm:h-5 px-1 sm:px-1.5 bg-red-500 text-white text-[8px] sm:text-[10px] font-bold rounded-full flex items-center justify-center shadow-lg">
                   {totalActivity > 99 ? "99+" : totalActivity}
                 </span>
               )}
@@ -251,15 +251,15 @@ export function DownloadQueuePopout() {
 
           <div class="fixed inset-0 sm:inset-auto sm:bottom-6 sm:right-6 z-50 flex items-end sm:items-start justify-center sm:justify-end p-0 sm:p-0">
             <div
-              class={`w-full sm:w-[540px] bg-surface rounded-t-3xl sm:rounded-2xl shadow-2xl border-t sm:border border-border-light max-h-[85vh] sm:max-h-[calc(100vh-10rem)] flex flex-col ${isClosing ? "animate-popout-close" : "animate-popout-open"
+              class={`w-full sm:w-[540px] bg-surface rounded-t-2xl sm:rounded-2xl shadow-2xl border-t sm:border border-border-light max-h-[92vh] sm:max-h-[calc(100vh-10rem)] flex flex-col ${isClosing ? "animate-popout-close" : "animate-popout-open"
                 }`}
             >
               <button
                 onClick={handleClose}
-                class="flex items-center justify-between p-4 sm:p-5 border-b border-border-light flex-shrink-0 hover:bg-surface-alt transition-colors rounded-t-3xl sm:rounded-t-2xl group w-full text-left sticky top-0 bg-surface z-10"
+                class="flex items-center justify-between p-3 sm:p-5 border-b border-border-light flex-shrink-0 hover:bg-surface-alt transition-colors rounded-t-2xl sm:rounded-t-2xl group w-full text-left sticky top-0 bg-surface z-10"
               >
-                <h2 class="text-lg font-bold text-text">Download Queue</h2>
-                <div class="p-2 rounded-lg group-hover:bg-background-alt transition-colors">
+                <h2 class="text-base sm:text-lg font-bold text-text">Download Queue</h2>
+                <div class="p-1.5 sm:p-2 rounded-lg group-hover:bg-background-alt transition-colors">
                   <svg
                     class="w-5 h-5 text-text-muted group-hover:text-text transition-colors"
                     fill="none"
@@ -276,22 +276,22 @@ export function DownloadQueuePopout() {
                 </div>
               </button>
 
-              <div class="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 pb-safe">
-                <div class="flex flex-wrap gap-2 sm:gap-3 text-xs text-text-muted p-3 bg-surface-alt rounded-lg border border-border-light">
-                  <div class="flex items-center gap-1.5">
+              <div class="flex-1 overflow-y-auto p-3 sm:p-5 space-y-3 sm:space-y-4 pb-safe">
+                <div class="flex flex-wrap gap-1.5 sm:gap-3 text-[10px] sm:text-xs text-text-muted p-2 sm:p-3 bg-surface-alt rounded-lg border border-border-light">
+                  <div class="flex items-center gap-1 sm:gap-1.5">
                     <div class="w-2 h-2 rounded-full bg-secondary"></div>
                     <span>Queued: {queue.length}</span>
                   </div>
-                  <div class="flex items-center gap-1.5">
+                  <div class="flex items-center gap-1 sm:gap-1.5">
                     <div class="w-2 h-2 rounded-full bg-primary animate-pulse"></div>
                     <span>Downloading: {downloading.length}</span>
                   </div>
-                  <div class="flex items-center gap-1.5">
+                  <div class="flex items-center gap-1 sm:gap-1.5">
                     <div class="w-2 h-2 rounded-full bg-primary-dark"></div>
                     <span>Completed: {completed.length}</span>
                   </div>
                   {failed.length > 0 && (
-                    <div class="flex items-center gap-1.5">
+                    <div class="flex items-center gap-1 sm:gap-1.5">
                       <div class="w-2 h-2 rounded-full bg-red-500"></div>
                       <span>Failed: {failed.length}</span>
                     </div>

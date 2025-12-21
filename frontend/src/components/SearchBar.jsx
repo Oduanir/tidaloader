@@ -220,11 +220,11 @@ export function SearchBar() {
         </button>
       </div>
 
-      <div class="flex flex-wrap gap-3 p-4 bg-surface-alt rounded-xl border border-border-light">
+      <div class="grid grid-cols-4 gap-1.5 sm:flex sm:gap-3 p-2 sm:p-4 bg-surface-alt rounded-xl border border-border-light">
         {["track", "album", "artist", "playlist"].map((type) => (
           <label
             key={type}
-            class={`flex items-center gap-3 px-4 py-2 rounded-lg cursor-pointer transition-all duration-200 ${searchType === type
+            class={`flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-1 sm:gap-3 px-2 sm:px-4 py-2 sm:py-2 rounded-lg cursor-pointer transition-all duration-200 ${searchType === type
               ? "bg-primary text-white shadow-sm"
               : "bg-surface hover:bg-background-alt border border-border"
               }`}
@@ -238,7 +238,7 @@ export function SearchBar() {
               class="hidden"
             />
             <svg
-              class="w-5 h-5"
+              class="w-4 h-4 sm:w-5 sm:h-5"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -276,7 +276,7 @@ export function SearchBar() {
                 />
               )}
             </svg>
-            <span class="text-sm font-medium capitalize">{type}</span>
+            <span class="text-[10px] sm:text-sm font-medium capitalize">{type}</span>
           </label>
         ))}
       </div>

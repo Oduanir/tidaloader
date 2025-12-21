@@ -44,16 +44,16 @@ export function LibraryPage() {
     }
 
     return (
-        <div class="space-y-6 animate-fade-in">
-            <div class="flex items-center justify-between">
-                <h2 class="text-xl font-bold text-text">Your Library</h2>
+        <div class="space-y-4 sm:space-y-6 animate-fade-in">
+            <div class="flex items-center justify-between gap-3">
+                <h2 class="text-lg sm:text-xl font-bold text-text">Your Library</h2>
                 <button
                     onClick={() => loadLibrary(true)}
                     disabled={loading}
-                    class="btn-surface flex items-center gap-2 text-sm"
+                    class="btn-surface flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm px-2.5 sm:px-4 py-1.5 sm:py-2"
                 >
                     <svg
-                        class={`w-4 h-4 ${loading ? "animate-spin" : ""}`}
+                        class={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${loading ? "animate-spin" : ""}`}
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -65,7 +65,8 @@ export function LibraryPage() {
                             d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
                         />
                     </svg>
-                    {loading ? "Scanning..." : "Rescan Library"}
+                    <span class="hidden sm:inline">{loading ? "Scanning..." : "Rescan Library"}</span>
+                    <span class="sm:hidden">{loading ? "..." : "Rescan"}</span>
                 </button>
             </div>
 
@@ -87,7 +88,7 @@ export function LibraryPage() {
                     </p>
                 </div>
             ) : (
-                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                <div class="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-4">
                     {artists.map((artist) => (
                         <ArtistCard
                             key={artist.name}
@@ -132,9 +133,9 @@ function ArtistCard({ artist, onClick }) {
     return (
         <div
             onClick={onClick}
-            class="group cursor-pointer p-4 rounded-xl bg-surface-alt/50 hover:bg-surface-alt border border-transparent hover:border-border transition-all duration-200"
+            class="group cursor-pointer p-2 sm:p-4 rounded-xl bg-surface-alt/50 hover:bg-surface-alt border border-transparent hover:border-border transition-all duration-200"
         >
-            <div class="aspect-square mb-3 rounded-full overflow-hidden bg-surface shadow-sm group-hover:shadow-md transition-all relative">
+            <div class="aspect-square mb-2 sm:mb-3 rounded-full overflow-hidden bg-surface shadow-sm group-hover:shadow-md transition-all relative">
                 {imageUrl ? (
                     <img
                         src={imageUrl}
@@ -150,7 +151,7 @@ function ArtistCard({ artist, onClick }) {
 
                 {/* Fallback / Loading State */}
                 <div
-                    class="w-full h-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center text-primary font-bold text-2xl absolute inset-0"
+                    class="w-full h-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center text-primary font-bold text-lg sm:text-2xl absolute inset-0"
                     style={{ display: imageUrl ? 'none' : 'flex' }}
                 >
                     {loadingImage ? (
@@ -161,10 +162,10 @@ function ArtistCard({ artist, onClick }) {
                 </div>
             </div>
             <div class="text-center">
-                <h3 class="font-bold text-text truncate group-hover:text-primary transition-colors">
+                <h3 class="font-bold text-text truncate group-hover:text-primary transition-colors text-xs sm:text-base">
                     {artist.name}
                 </h3>
-                <p class="text-xs text-text-muted mt-1">
+                <p class="text-[10px] sm:text-xs text-text-muted mt-0.5 sm:mt-1">
                     {artist.album_count} albums • {artist.track_count} tracks
                 </p>
             </div>

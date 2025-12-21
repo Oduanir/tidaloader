@@ -52,18 +52,18 @@ export function App() {
     return (
         <div class="min-h-screen bg-background">
 
-            <header class="bg-surface border-b border-border-light px-4 py-3 shadow-sm">
+            <header class="bg-surface border-b border-border-light px-3 sm:px-4 py-2 sm:py-3 shadow-sm">
                 <div class="max-w-7xl mx-auto flex justify-between items-center">
-                    <div class="flex items-center gap-3">
-                        <div class="flex items-center justify-center w-10 h-10 bg-primary rounded-xl overflow-hidden">
-                            <img src={logo} alt="Tidaloader Logo" class="w-8 h-8 object-contain" />
+                    <div class="flex items-center gap-2 sm:gap-3">
+                        <div class="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 bg-primary rounded-xl overflow-hidden">
+                            <img src={logo} alt="Tidaloader Logo" class="w-6 h-6 sm:w-8 sm:h-8 object-contain" />
                         </div>
-                        <h1 class="text-xl sm:text-2xl font-bold text-text">Tidaloader</h1>
+                        <h1 class="text-lg sm:text-2xl font-bold text-text">Tidaloader</h1>
                     </div>
-                    <div class="flex items-center gap-3">
+                    <div class="flex items-center gap-1 sm:gap-3">
                         <button
                             onClick={() => setShowReleaseNotes(true)}
-                            class="hidden sm:flex items-center gap-2 px-3 py-2 text-sm font-medium text-text-muted hover:text-text hover:bg-surface-alt rounded-lg transition-all duration-200"
+                            class="flex items-center justify-center w-9 h-9 sm:w-auto sm:h-auto sm:gap-2 sm:px-3 sm:py-2 text-sm font-medium text-text-muted hover:text-text hover:bg-surface-alt rounded-lg transition-all duration-200"
                             title="What's New"
                         >
                             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -73,12 +73,12 @@ export function App() {
                                 <line x1="16" y1="17" x2="8" y2="17"></line>
                                 <polyline points="10 9 9 9 8 9"></polyline>
                             </svg>
-                            <span>What's New</span>
+                            <span class="hidden sm:inline">What's New</span>
                         </button>
                         <ThemePicker />
                         <button
                             onClick={clearCredentials}
-                            class="flex items-center gap-2 px-4 py-2 bg-surface-alt hover:bg-background-alt border border-border text-text-muted hover:text-text rounded-lg text-sm transition-all duration-200"
+                            class="flex items-center justify-center w-9 h-9 sm:w-auto sm:h-auto sm:gap-2 sm:px-4 sm:py-2 bg-surface-alt hover:bg-background-alt border border-border text-text-muted hover:text-text rounded-lg text-sm transition-all duration-200"
                         >
                             <svg
                                 class="w-4 h-4"
@@ -143,55 +143,60 @@ export function App() {
                     </div>
                 )}
 
-                <nav class="flex gap-2 mb-6 border-b border-border pb-0">
+                <nav class="flex gap-1 sm:gap-2 mb-6 border-b border-border pb-0 overflow-x-auto scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
                     <button
-                        class={`px-6 py-3 font-medium rounded-t-lg transition-all duration-200 ${activeTab === "search"
+                        class={`px-3 sm:px-6 py-2 sm:py-3 font-medium rounded-t-lg transition-all duration-200 whitespace-nowrap text-sm sm:text-base flex-shrink-0 ${activeTab === "search"
                             ? "bg-surface text-primary border-b-2 border-primary -mb-px"
                             : "text-text-muted hover:text-text hover:bg-surface-alt"
                             }`}
                         onClick={() => setActiveTab("search")}
                     >
-                        Custom Search
+                        <span class="sm:hidden">Search</span>
+                        <span class="hidden sm:inline">Custom Search</span>
                     </button>
                     <button
-                        class={`px-6 py-3 font-medium rounded-t-lg transition-all duration-200 ${activeTab === "weekly-jams"
+                        class={`px-3 sm:px-6 py-2 sm:py-3 font-medium rounded-t-lg transition-all duration-200 whitespace-nowrap text-sm sm:text-base flex-shrink-0 ${activeTab === "weekly-jams"
                             ? "bg-surface text-primary border-b-2 border-primary -mb-px"
                             : "text-text-muted hover:text-text hover:bg-surface-alt"
                             }`}
                         onClick={() => setActiveTab("weekly-jams")}
                     >
-                        Listenbrainz Playlists
+                        <span class="sm:hidden">ListenBrainz</span>
+                        <span class="hidden sm:inline">Listenbrainz Playlists</span>
                     </button>
                     <button
-                        class={`px-6 py-3 font-medium rounded-t-lg transition-all duration-200 ${activeTab === "spotify"
+                        class={`px-3 sm:px-6 py-2 sm:py-3 font-medium rounded-t-lg transition-all duration-200 whitespace-nowrap text-sm sm:text-base flex-shrink-0 ${activeTab === "spotify"
                             ? "bg-surface text-primary border-b-2 border-primary -mb-px"
                             : "text-text-muted hover:text-text hover:bg-surface-alt"
                             }`}
                         onClick={() => setActiveTab("spotify")}
                     >
-                        Spotify Playlists
+                        <span class="sm:hidden">Spotify</span>
+                        <span class="hidden sm:inline">Spotify Playlists</span>
                     </button>
                     <button
-                        class={`px-6 py-3 font-medium rounded-t-lg transition-all duration-200 ${activeTab === "playlists"
+                        class={`px-3 sm:px-6 py-2 sm:py-3 font-medium rounded-t-lg transition-all duration-200 whitespace-nowrap text-sm sm:text-base flex-shrink-0 ${activeTab === "playlists"
                             ? "bg-surface text-primary border-b-2 border-primary -mb-px"
                             : "text-text-muted hover:text-text hover:bg-surface-alt"
                             }`}
                         onClick={() => setActiveTab("playlists")}
                     >
-                        Tidal Playlists
+                        <span class="sm:hidden">Playlists</span>
+                        <span class="hidden sm:inline">Tidal Playlists</span>
                     </button>
                     <button
-                        class={`px-6 py-3 font-medium rounded-t-lg transition-all duration-200 ${activeTab === "library"
+                        class={`px-3 sm:px-6 py-2 sm:py-3 font-medium rounded-t-lg transition-all duration-200 whitespace-nowrap text-sm sm:text-base flex-shrink-0 ${activeTab === "library"
                             ? "bg-surface text-primary border-b-2 border-primary -mb-px"
                             : "text-text-muted hover:text-text hover:bg-surface-alt"
                             }`}
                         onClick={() => setActiveTab("library")}
                     >
-                        My Library
+                        <span class="sm:hidden">Library</span>
+                        <span class="hidden sm:inline">My Library</span>
                     </button>
                 </nav>
 
-                <main class="card p-6 mb-6 min-h-[400px]">
+                <main class="card p-3 sm:p-6 mb-6 min-h-[300px] sm:min-h-[400px]">
                     {activeTab === "search" && <SearchBar />}
                     {activeTab === "weekly-jams" && <WeeklyJamsGenerator />}
                     {activeTab === "spotify" && <SpotifyDownloader />}

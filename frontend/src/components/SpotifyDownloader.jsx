@@ -260,8 +260,8 @@ export function SpotifyDownloader() {
     };
 
     return (
-        <div class="space-y-6">
-            <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+        <div class="space-y-4 sm:space-y-6">
+            <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 sm:gap-4">
                 <div class="sm:col-span-3">
                     <label class="block text-xs font-semibold text-text-muted mb-1.5 uppercase tracking-wider">
                         Spotify Playlist URL
@@ -277,7 +277,7 @@ export function SpotifyDownloader() {
                         }}
                         placeholder="https://open.spotify.com/playlist/..."
                         disabled={loading}
-                        class="input-field w-full h-[42px]"
+                        class="input-field w-full h-[42px] text-sm"
                     />
                 </div>
 
@@ -285,7 +285,7 @@ export function SpotifyDownloader() {
                     <button
                         onClick={handleFetch}
                         disabled={loading || !playlistUrl.trim()}
-                        class="btn-primary w-full h-[42px] flex items-center justify-center gap-2"
+                        class="btn-primary w-full h-[42px] flex items-center justify-center gap-2 text-sm"
                     >
                         {loading ? (
                             <svg class="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
