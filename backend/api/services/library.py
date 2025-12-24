@@ -43,12 +43,12 @@ class LibraryService:
             tags = {}
             
             if ext == '.mp3':
+                from mutagen.mp3 import MP3
+                audio = MP3(filepath)  # For duration info
                 try:
-                    audio = EasyID3(filepath)
-                    tags = audio
+                    tags = EasyID3(filepath)
                 except mutagen.id3.ID3NoHeaderError:
-                    audio = mutagen.File(filepath, easy=True)
-                    tags = audio or {}
+                    tags = {}
             elif ext == '.flac':
                 audio = FLAC(filepath)
                 tags = audio

@@ -594,13 +594,44 @@ async def process_queue_item(item: QueueItem):
             'source_quality': source_quality,
             'title': item.title,
             'artist': item.artist,
-            'album': item.album,
-            'album_artist': item.album_artist or item.artist, # Use passed album_artist or fallback to artist
-            'track_number': item.track_number,
             'tidal_track_id': item.tidal_track_id or str(track_id),
             'tidal_artist_id': item.tidal_artist_id,
             'tidal_album_id': item.tidal_album_id,
         }
+        
+        # Extract actual album/track info from Tidal API response (like download_track_server_side does)
+        if isinstance(track_data, dict):
+            album_data = track_data.get('album', {})
+            if isinstance(album_data, dict) and album_data.get('title'):
+                metadata['album'] = album_data.get('title')
+                metadata['album_artist'] = album_data.get('artist', {}).get('name') if isinstance(album_data.get('artist'), dict) else None
+                metadata['total_tracks'] = album_data.get('numberOfTracks')
+                metadata['total_discs'] = album_data.get('numberOfVolumes')
+                # Update tidal_album_id from actual track data
+                if album_data.get('id'):
+                    metadata['tidal_album_id'] = str(album_data.get('id'))
+                
+                # Check for compilation
+                album_artist = metadata.get('album_artist') or ''
+                if album_data.get('type') == 'COMPILATION' or (album_artist and album_artist.lower() in ['various artists', 'various']):
+                    metadata['compilation'] = True
+            else:
+                metadata['album'] = item.album  # Fallback to queue item
+                metadata['album_artist'] = item.album_artist or item.artist
+            
+            metadata['track_number'] = track_data.get('trackNumber') or item.track_number
+            metadata['disc_number'] = track_data.get('volumeNumber')
+            metadata['date'] = track_data.get('streamStartDate', '').split('T')[0] if track_data.get('streamStartDate') else None
+            
+            # Update artist ID from track data if available
+            artist_data = track_data.get('artist', {})
+            if isinstance(artist_data, dict) and artist_data.get('id'):
+                metadata['tidal_artist_id'] = str(artist_data.get('id'))
+        else:
+            # Fallback to queue item data
+            metadata['album'] = item.album
+            metadata['album_artist'] = item.album_artist or item.artist
+            metadata['track_number'] = item.track_number
         
         if is_mp3_request:
             metadata['target_format'] = 'mp3'
