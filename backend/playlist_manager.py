@@ -450,6 +450,27 @@ class PlaylistManager:
             if len(data) == 0:
                  logger.warning(f"Read 0 bytes from '{playlist_name}'. Skipping upload.")
                  return
+
+            # Validate Magic Numbers (Prevent uploading HTML/Garbage)
+            is_valid_image = False
+            if data.startswith(b'\xff\xd8\xff'): # JPEG
+                is_valid_image = True
+            elif data.startswith(b'\x89PNG\r\n\x1a\n'): # PNG
+                is_valid_image = True
+            elif data.startswith(b'RIFF') and data[8:12] == b'WEBP': # WEBP
+                is_valid_image = True
+            
+            if not is_valid_image:
+                # Peek at first 50 chars to see if it's text/html
+                preview = data[:50]
+                logger.warning(f"Invalid image file for '{playlist_name}'. Header: {preview}. Deleting and skipping upload.")
+                # We can try to delete it so it redownloads next time
+                try:
+                    image_path.unlink()
+                    logger.info("Deleted invalid cover file.")
+                except Exception as e:
+                    logger.error(f"Failed to delete invalid file: {e}")
+                return
                 
             # 3. Upload
             if jellyfin_client.upload_image(playlist_id, data):

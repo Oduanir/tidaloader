@@ -189,6 +189,8 @@ class JellyfinClient:
 
             headers = self._get_headers()
             headers["Content-Type"] = content_type
+            
+            logger.info(f"Uploading image: {len(image_data)} bytes, Detected Type: {content_type}")
 
             response = self.session.post(url, data=image_data, headers=headers, timeout=30)
             response.raise_for_status()
