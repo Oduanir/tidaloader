@@ -29,65 +29,90 @@ class CoverArtGenerator:
                 draw = ImageDraw.Draw(img)
                 width, height = img.size
 
-                # Dynamic font size calculation (naive but functional)
-                # Aim for title to be ~80% of width
-                title_font_size = int(width / 8)
-                subtitle_font_size = int(width / 15)
-                
-                # Load default font (Pillow native) or custom if available
-                # Note: System fonts path varies. For now using default PIL font which is very small/ugly.
-                # BETTER: Load a specific TTF if we add one.
-                # For robust "default", we can try to find a system font or just use default.
-                # Let's try to load a nice font if possible, else failover.
+                # Improved Font Sizing & Layout
+                # Goal: 
+                # Title: Large, Multiline if needed, Top/Center
+                # User: Large, Distinct color/weight, Bottom/Center
+
+                # Font Sizes (Scale relative to width=640 usually)
+                title_size = int(width / 7)    # Slightly smaller to fit words
+                subtitle_size = int(width / 9) # MUCH larger than before (was /15)
+
                 font_path = self.assets_dir / "font.ttf"
                 if font_path.exists():
-                    font = ImageFont.truetype(str(font_path), title_font_size)
-                    sub_font = ImageFont.truetype(str(font_path), subtitle_font_size)
+                    font = ImageFont.truetype(str(font_path), title_size)
+                    sub_font = ImageFont.truetype(str(font_path), subtitle_size)
                 else:
-                    # Fallback to default (ugly but works)
-                    logger.warning("Custom font not found, using default.")
-                    font = ImageFont.load_default() 
-                    # Scale default font? Not easily possible with load_default().
-                    # Actually, we can use a system font path commonly found on linux containers.
+                    # Try linux paths
                     try:
-                        font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", title_font_size)
-                        sub_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", subtitle_font_size)
+                        font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", title_size)
+                        sub_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", subtitle_size) # Bold for user too
                     except:
-                         font = ImageFont.load_default()
-                         sub_font = ImageFont.load_default()
+                        font = ImageFont.load_default()
+                        sub_font = ImageFont.load_default()
 
-                # Calculate text position (Centered)
-                # Pillow 10+ uses textbbox
-                try:
-                    left, top, right, bottom = draw.textbbox((0, 0), title, font=font)
-                    text_width = right - left
-                    text_height = bottom - top
-                except AttributeError:
-                    # Older Pillow
-                    text_width, text_height = draw.textsize(title, font=font)
-
-                x = (width - text_width) / 2
-                y = (height - text_height) / 2
-
-                # Apply a slight shadow for readability
-                shadow_offset = 5
-                draw.text((x + shadow_offset, y + shadow_offset), title, font=font, fill=(0, 0, 0))
-                draw.text((x, y), title, font=font, fill=(255, 255, 255))
+                # --- Draw Title (Multiline) ---
+                import textwrap
+                # Wrap text to ~10-12 chars per line roughly? Or measure it?
+                # Pillow doesn't auto-wrap. Let's wrap fairly aggressively for "Weekly Exploration" -> 2 lines
+                lines = textwrap.wrap(title, width=10) 
                 
-                # Subtitle (User initials or full name)
+                # Calculate total height of title block
+                line_heights = []
+                line_spacing = 10
+                for line in lines:
+                    bbox = draw.textbbox((0, 0), line, font=font)
+                    line_heights.append(bbox[3] - bbox[1])
+                
+                total_title_h = sum(line_heights) + (len(lines) - 1) * line_spacing
+                
+                # --- Draw Subtitle (User) ---
+                sub_w = 0
+                sub_h = 0
                 if subtitle:
-                    try:
-                        sl, st, sr, sb = draw.textbbox((0, 0), subtitle, font=sub_font)
-                        sub_w = sr - sl
-                        sub_h = sb - st
-                    except:
-                        sub_w, sub_h = draw.textsize(subtitle, font=sub_font)
-                        
-                    sx = (width - sub_w) / 2
-                    sy = y + text_height + 20
+                    sbbox = draw.textbbox((0, 0), subtitle, font=sub_font)
+                    sub_w = sbbox[2] - sbbox[0]
+                    sub_h = sbbox[3] - sbbox[1]
+
+                # --- Positioning ---
+                # Layout:
+                # [ Spacer ]
+                # [ Title Block ]
+                # [ Spacer ]
+                # [ User Block ]
+                # [ Spacer ]
+                
+                # Total content height
+                content_gap = 50 # Gap between title and user
+                total_content_h = total_title_h + content_gap + sub_h
+                
+                start_y = (height - total_content_h) / 2
+                
+                # Draw Title Lines
+                current_y = start_y
+                for i, line in enumerate(lines):
+                    lbbox = draw.textbbox((0, 0), line, font=font)
+                    lw = lbbox[2] - lbbox[0]
+                    lx = (width - lw) / 2
                     
-                    draw.text((sx+2, sy+2), subtitle, font=sub_font, fill=(0,0,0))
-                    draw.text((sx, sy), subtitle, font=sub_font, fill=(200, 200, 200))
+                    # Shadow
+                    shadow = 4
+                    draw.text((lx+shadow, current_y+shadow), line, font=font, fill=(0,0,0))
+                    draw.text((lx, current_y), line, font=font, fill=(255, 255, 255))
+                    
+                    current_y += line_heights[i] + line_spacing
+                
+                # Draw User
+                if subtitle:
+                    user_y = current_y + content_gap - line_spacing # Adjust for last spacing
+                    sx = (width - sub_w) / 2
+                    
+                    # User: Yellow/Gold or just distinct White? 
+                    # Let's keep white but maybe a different opacity or just BRIGHT
+                    # Shadow
+                    draw.text((sx+3, user_y+3), subtitle, font=sub_font, fill=(0,0,0))
+                    # Text
+                    draw.text((sx, user_y), subtitle, font=sub_font, fill=(255, 220, 100)) # Slight Gold tint for User
 
                 # Save to bytes
                 from io import BytesIO

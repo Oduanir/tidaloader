@@ -200,6 +200,24 @@ class JellyfinClient:
             response.raise_for_status()
             logger.info(f"Successfully uploaded image for item {item_id}")
             return True
+
+    def refresh_library(self) -> bool:
+        """
+        Triggers a library scan to pick up new files immediately.
+        """
+        base_url = self._get_base_url()
+        if not base_url:
+            return False
+            
+        url = f"{base_url}/Library/Refresh"
+        try:
+            logger.info("Triggering Jellyfin Library Refresh...")
+            response = self.session.post(url, headers=self._get_headers(), timeout=10)
+            response.raise_for_status()
+            return True
+        except Exception as e:
+            logger.error(f"Failed to refresh library: {e}")
+            return False
         except requests.exceptions.HTTPError as e:
             logger.error(f"Failed to upload image for {item_id}: {e}")
             if e.response is not None:

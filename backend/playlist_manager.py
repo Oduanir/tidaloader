@@ -411,7 +411,7 @@ class PlaylistManager:
         
         return {'status': 'success', 'queued': queued_count, 'total_tracks': len(raw_items)}
 
-    async def _sync_cover_to_jellyfin(self, playlist_name: str, image_path: Path):
+    async def _sync_cover_to_jellyfin(self, playlist_name: str, image_path: Path, scan_wait: bool = False):
         """
         Tries to find the playlist in Jellyfin and upload the cover art.
         """
@@ -424,6 +424,11 @@ class PlaylistManager:
             playlist_id = None
             max_retries = 3
             retry_delay = 4 # seconds
+            
+            if scan_wait:
+                # If we just triggered a scan, wait longer and retry more
+                max_retries = 10
+                retry_delay = 5 # Total wait approx 50s which covers most library scan times
             
             for attempt in range(max_retries):
                 playlist_id = jellyfin_client.find_playlist_id(playlist_name)
