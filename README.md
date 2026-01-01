@@ -169,6 +169,27 @@ docker compose up -d
 
 ---
 
+## Updating
+
+### Docker
+
+To update Tidaloader to the latest version, navigate to the directory containing your `docker-compose.yml` and run:
+
+```bash
+docker compose down
+
+# Pull the latest image
+docker compose pull
+
+# Recreate the container
+docker compose up -d
+
+# (Optional) Clean up old images
+docker image prune -f
+```
+
+***
+
 ## Configuration
 
 ### Environment Variables
