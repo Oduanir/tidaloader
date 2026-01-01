@@ -1,16 +1,28 @@
 export const releaseNotes = [
     {
-        version: "1.2.7",
+        version: "1.3.0",
         date: "2026-01-01",
-        title: "MusicBrainz Tagging & Quality Fallback",
+        title: "Jellyfin Integration & Enhanced Settings",
+        changes: [
+            "New Feature: Jellyfin Server Integration! Sync cover art and metadata to your Jellyfin library.",
+            "Automated ListenBrainz sync per Jellyfin user for seamless integration.",
+            "Dynamic cover art generator for ListenBrainz playlists with customizable themes.",
+            "Enhanced M3U8 playlists with source metadata headers for better compatibility.",
+            "Improved Settings UI with organized card-based sections and manual save workflow.",
+            "MusicBrainz Tagging now integrated in the new Settings layout.",
+            "MusicBrainz and Beets tagging are mutually exclusive for optimal metadata quality."
+        ]
+    },
+    {
+        version: "1.2.7",
+        date: "2025-12-31",
+        title: "MusicBrainz Integration & Quality Improvements",
         changes: [
             "New Feature: MusicBrainz Integration! Fetch accurate metadata (genre, ISRC, MBIDs, Label) for all downloads.",
-            "Added 'MusicBrainz Tagging' toggle in Settings (replaces Group Compilations).",
-            "Improved audio tagging for FLAC, MP3, M4A, and Opus with comprehensive metadata support.",
-            "Fixed HI_RES quality fallback: Now validates stream URLs to prevent 'Invalid content type' errors and automatically falls back to LOSSLESS.",
-            "Increased download timeouts to 30 minutes to handle large FLAC albums and slow connections.",
-            "Cleaned up Vorbis comments (FLAC/Opus) by removing non-standard YEAR tags for better compatibility with Navidrome/Jellyfin.",
-            "Temporarily disabled the 'My Library' feature for maintenance."
+            "Fixed HI_RES quality fallback: Now validates stream URLs to prevent XML errors and auto-falls back to LOSSLESS.",
+            "Increased download timeouts to 30 minutes for large FLAC albums.",
+            "Cleaned up Vorbis comments (FLAC/Opus) by removing non-standard YEAR tags.",
+            "Temporarily disabled Library feature pending improvements."
         ]
     },
     {

@@ -152,7 +152,6 @@ export const useDownloadStore = create(
 
           set((state) => ({
             organizationTemplate: res.organization_template !== undefined ? res.organization_template : state.organizationTemplate,
-            groupCompilations: res.group_compilations !== undefined ? res.group_compilations : state.groupCompilations,
             maxConcurrent: res.active_downloads !== undefined ? res.active_downloads : state.maxConcurrent,
             useMusicBrainz: res.use_musicbrainz !== undefined ? res.use_musicbrainz : state.useMusicBrainz,
             runBeets: res.run_beets !== undefined ? res.run_beets : state.runBeets,
@@ -183,7 +182,6 @@ export const useDownloadStore = create(
           // Optimistic update
           set((state) => ({
             organizationTemplate: settings.organization_template !== undefined ? settings.organization_template : state.organizationTemplate,
-            groupCompilations: settings.group_compilations !== undefined ? settings.group_compilations : state.groupCompilations,
             maxConcurrent: settings.active_downloads !== undefined ? settings.active_downloads : state.maxConcurrent,
             useMusicBrainz: settings.use_musicbrainz !== undefined ? settings.use_musicbrainz : state.useMusicBrainz,
             runBeets: settings.run_beets !== undefined ? settings.run_beets : state.runBeets,
@@ -246,7 +244,6 @@ export const useDownloadStore = create(
             body: JSON.stringify({
               sync_time: s.serverQueueSettings.sync_time,
               organization_template: s.organizationTemplate,
-              group_compilations: s.groupCompilations,
               active_downloads: s.maxConcurrent,
               use_musicbrainz: s.useMusicBrainz,
               run_beets: s.runBeets,

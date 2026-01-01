@@ -15,7 +15,6 @@ const QUALITY_OPTIONS = [
 export function SettingsPanel() {
     const [syncTime, setSyncTime] = useState("04:00");
     const [template, setTemplate] = useState("{Artist}/{Album}/{TrackNumber} - {Title}");
-    const [groupCompilations, setGroupCompilations] = useState(false);
     const [activeDownloads, setActiveDownloads] = useState(3);
     const [useMusicBrainz, setUseMusicBrainz] = useState(true);
     const [runBeets, setRunBeets] = useState(false);
@@ -44,7 +43,6 @@ export function SettingsPanel() {
                 if (s) {
                     setSyncTime(s.sync_time);
                     setTemplate(s.organization_template);
-                    setGroupCompilations(s.group_compilations);
                     setActiveDownloads(s.active_downloads);
                     setUseMusicBrainz(s.use_musicbrainz !== undefined ? s.use_musicbrainz : true);
                     setRunBeets(s.run_beets || false);
@@ -72,7 +70,6 @@ export function SettingsPanel() {
             await useDownloadStore.getState().updateServerSettings({
                 sync_time: syncTime,
                 organization_template: template,
-                group_compilations: groupCompilations,
                 active_downloads: activeDownloads,
                 use_musicbrainz: useMusicBrainz,
                 run_beets: runBeets,
@@ -194,17 +191,6 @@ export function SettingsPanel() {
                             </option>
                         ))}
                     </select>
-                </div>
-
-                <div className="flex items-center justify-between p-4 bg-surface-alt rounded-lg border border-border-light">
-                    <div className="space-y-1">
-                        <span className="text-sm font-medium text-text block">Group Compilations</span>
-                        <span className="text-xs text-text-muted block">Put tracks in "Compilations" folder if Various Artists</span>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" className="sr-only peer" checked={groupCompilations} onChange={(e) => setGroupCompilations(e.target.checked)} />
-                        <div className="w-11 h-6 bg-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                    </label>
                 </div>
             </div>
 

@@ -11,7 +11,6 @@ class Settings(BaseSettings):
     auth_password: Optional[str] = None
     sync_time: str = "04:00"
     organization_template: str = "{Artist}/{Album}/{TrackNumber} - {Title}"
-    group_compilations: bool = True
     active_downloads: int = 3
     
     # Feature toggles
