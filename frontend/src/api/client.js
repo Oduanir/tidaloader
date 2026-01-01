@@ -42,6 +42,7 @@ class ApiClient {
         const response = await fetch(url, {
             headers: this.getHeaders(),
             credentials: "include",
+            cache: "no-store"
         });
 
         if (response.status === 401) {
@@ -385,8 +386,8 @@ class ApiClient {
         return this.get("/playlists/monitored");
     }
 
-    monitorPlaylist(uuid, name, frequency, quality) {
-        return this.post("/playlists/monitor", { uuid, name, frequency, quality });
+    monitorPlaylist(uuid, name, frequency, quality, source = "tidal", extra_config = null) {
+        return this.post("/playlists/monitor", { uuid, name, frequency, quality, source, extra_config });
     }
 
     removeMonitoredPlaylist(uuid) {
@@ -403,6 +404,18 @@ class ApiClient {
 
     deletePlaylistFiles(uuid, files) {
         return this.post(`/playlists/${uuid}/delete-files`, { files });
+    }
+
+    // ============================================================================
+    // SYSTEM API METHODS
+    // ============================================================================
+
+    testJellyfinConnection(url = null, apiKey = null) {
+        return this.post("/system/jellyfin/test", { url, api_key: apiKey });
+    }
+
+    getJellyfinUsers() {
+        return this.get("/system/jellyfin/users");
     }
 
     // ============================================================================

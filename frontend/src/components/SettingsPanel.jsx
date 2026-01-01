@@ -1,65 +1,192 @@
 import { h } from "preact";
-import { useEffect } from "preact/hooks";
+import { useState, useEffect } from "preact/hooks";
 import { useDownloadStore } from "../stores/downloadStore";
 
 const QUALITY_OPTIONS = [
-    {
-        value: "HI_RES_LOSSLESS",
-        label: "Hi-Res FLAC",
-        description: "Up to 24-bit/192kHz",
-    },
+    { value: "HI_RES_LOSSLESS", label: "Hi-Res FLAC", description: "Up to 24-bit/192kHz" },
     { value: "LOSSLESS", label: "FLAC", description: "16-bit/44.1kHz" },
-    { value: "MP3_256", label: "MP3 256kbps", description: "Transcoded MP3 (libmp3lame)" },
-    { value: "MP3_128", label: "MP3 128kbps", description: "Transcoded MP3 (smaller size)" },
-    { value: "OPUS_192VBR", label: "Opus 192kbps VBR", description: "Variable bitrate Opus (192kbps target)" },
-    { value: "HIGH", label: "320kbps AAC", description: "High quality AAC" },
-    { value: "LOW", label: "96kbps AAC", description: "Low quality AAC" },
-];
-
-const TEMPLATE_OPTIONS = [
-    { value: "{Artist}/{Album}/{TrackNumber} - {Title}", label: "Artist/Album/Track - Title (Default)" },
-    { value: "{Album}/{TrackNumber} - {Title}", label: "Album/Track - Title" },
-    { value: "{Artist} - {Title}", label: "Artist - Title" },
-    { value: "{Artist}/{Album}/{Title}", label: "Artist/Album/Title" },
+    { value: "MP3_256", label: "MP3 256kbps", description: "Transcoded (libmp3lame)" },
+    { value: "MP3_128", label: "MP3 128kbps", description: "Transcoded (smaller size)" },
+    { value: "OPUS_192VBR", label: "Opus 192kbps", description: "Variable bitrate (192kbps target)" },
+    { value: "HIGH", label: "AAC 320kbps", description: "High quality AAC" },
+    { value: "LOW", label: "AAC 96kbps", description: "Low quality AAC" },
 ];
 
 export function SettingsPanel() {
-    const quality = useDownloadStore((state) => state.quality);
-    const setQuality = useDownloadStore((state) => state.setQuality);
+    const [syncTime, setSyncTime] = useState("04:00");
+    const [template, setTemplate] = useState("{Artist}/{Album}/{TrackNumber} - {Title}");
+    const [groupCompilations, setGroupCompilations] = useState(false);
+    const [activeDownloads, setActiveDownloads] = useState(3);
+    const [useMusicBrainz, setUseMusicBrainz] = useState(true);
+    const [runBeets, setRunBeets] = useState(false);
+    const [embedLyrics, setEmbedLyrics] = useState(false);
+    const [quality, setQuality] = useState("LOSSLESS");
 
-    const organizationTemplate = useDownloadStore((state) => state.organizationTemplate);
-    const setOrganizationTemplate = useDownloadStore((state) => state.setOrganizationTemplate);
+    const [jellyfinUrl, setJellyfinUrl] = useState("");
+    const [jellyfinApiKey, setJellyfinApiKey] = useState("");
+    const [jellyfinStatus, setJellyfinStatus] = useState(null);
+    const [isCustomMode, setIsCustomMode] = useState(false);
 
-    const useMusicBrainz = useDownloadStore((state) => state.useMusicBrainz);
-    const setUseMusicBrainz = useDownloadStore((state) => state.setUseMusicBrainz);
+    const [processing, setProcessing] = useState(false);
 
-    const runBeets = useDownloadStore((state) => state.runBeets);
-    const setRunBeets = useDownloadStore((state) => state.setRunBeets);
+    const PREDEFINED_TEMPLATES = [
+        "{Artist}/{Album}/{TrackNumber} - {Title}",
+        "{Artist}/{Album}/{Title}",
+        "{Artist} - {Title}",
+        "{Album}/{TrackNumber} - {Title}"
+    ];
 
-    const embedLyrics = useDownloadStore((state) => state.embedLyrics);
-    const setEmbedLyrics = useDownloadStore((state) => state.setEmbedLyrics);
-
-    const serverQueueSettings = useDownloadStore((state) => state.serverQueueSettings);
-    const fetchServerSettings = useDownloadStore((state) => state.fetchServerSettings);
-    const updateServerSettings = useDownloadStore((state) => state.updateServerSettings);
-
+    // Initial load
     useEffect(() => {
-        fetchServerSettings();
+        const load = async () => {
+            try {
+                const s = await useDownloadStore.getState().fetchServerSettings();
+                if (s) {
+                    setSyncTime(s.sync_time);
+                    setTemplate(s.organization_template);
+                    setGroupCompilations(s.group_compilations);
+                    setActiveDownloads(s.active_downloads);
+                    setUseMusicBrainz(s.use_musicbrainz !== undefined ? s.use_musicbrainz : true);
+                    setRunBeets(s.run_beets || false);
+                    setEmbedLyrics(s.embed_lyrics || false);
+                    setJellyfinUrl(s.jellyfin_url || "");
+                    setJellyfinApiKey(s.jellyfin_api_key || "");
+
+                    // Check if template is custom
+                    if (s.organization_template && !PREDEFINED_TEMPLATES.includes(s.organization_template)) {
+                        setIsCustomMode(true);
+                    }
+                }
+                setQuality(useDownloadStore.getState().quality);
+            } catch (e) {
+                console.error("Load settings error", e);
+            }
+        };
+        load();
     }, []);
 
+    const handleSave = async () => {
+        setProcessing(true);
+        try {
+            useDownloadStore.getState().setQuality(quality);
+            await useDownloadStore.getState().updateServerSettings({
+                sync_time: syncTime,
+                organization_template: template,
+                group_compilations: groupCompilations,
+                active_downloads: activeDownloads,
+                use_musicbrainz: useMusicBrainz,
+                run_beets: runBeets,
+                embed_lyrics: embedLyrics,
+                jellyfin_url: jellyfinUrl,
+                jellyfin_api_key: jellyfinApiKey
+            });
+        } catch (error) {
+            console.error("Failed to save settings:", error);
+        } finally {
+            setProcessing(false);
+        }
+    };
+
+    const testJellyfinConnection = async () => {
+        setJellyfinStatus('testing');
+        try {
+            const res = await fetch('/api/system/jellyfin/test', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url: jellyfinUrl, api_key: jellyfinApiKey })
+            });
+            const data = await res.json();
+            if (data.status === 'success') {
+                setJellyfinStatus('success');
+            } else {
+                setJellyfinStatus('error');
+            }
+        } catch (e) {
+            setJellyfinStatus('error');
+        }
+        setTimeout(() => setJellyfinStatus(null), 3000);
+    };
+
     return (
-        <div class="space-y-4 sm:space-y-6">
-            <div class="grid grid-cols-1 gap-4 sm:gap-6">
-                {/* Audio Quality */}
-                <div class="space-y-2 sm:space-y-3">
-                    <label for="quality-select" class="block text-sm font-semibold text-text">
-                        Audio Quality
-                    </label>
+        <div className="p-4 sm:p-6 max-w-4xl mx-auto space-y-8 pb-24">
+            <div>
+                <h1 className="text-2xl sm:text-3xl font-bold text-text">
+                    Settings
+                </h1>
+                <p className="text-text-muted mt-2">Configure application preferences and behavior.</p>
+            </div>
+
+            {/* System Config */}
+            <div className="card p-6 space-y-6">
+                <h2 className="text-xl font-semibold text-text flex items-center gap-2">
+                    <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"></path></svg>
+                    System Configuration
+                </h2>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium text-text">Concurrent Downloads</label>
+                        <input
+                            type="number"
+                            min="1"
+                            max="10"
+                            value={activeDownloads}
+                            onChange={(e) => setActiveDownloads(parseInt(e.target.value))}
+                            className="input-field"
+                        />
+                    </div>
+
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium text-text">Playlist Sync Time (Daily)</label>
+                        <input
+                            type="time"
+                            value={syncTime}
+                            onChange={(e) => setSyncTime(e.target.value)}
+                            className="input-field"
+                        />
+                        <p className="text-xs text-text-muted">Time to run automated playlist synchronization.</p>
+                    </div>
+                </div>
+
+                <div className="space-y-2">
+                    <label className="text-sm font-medium text-text">Organization Template</label>
+                    <div className="space-y-2">
+                        <select
+                            className="input-field"
+                            value={isCustomMode ? "Custom" : template}
+                            onChange={(e) => {
+                                if (e.target.value === "Custom") {
+                                    setIsCustomMode(true);
+                                } else {
+                                    setTemplate(e.target.value);
+                                    setIsCustomMode(false);
+                                }
+                            }}
+                        >
+                            {PREDEFINED_TEMPLATES.map(t => (
+                                <option key={t} value={t}>{t}</option>
+                            ))}
+                            <option value="Custom">Custom</option>
+                        </select>
+                        {isCustomMode && (
+                            <input
+                                type="text"
+                                value={template}
+                                onChange={(e) => setTemplate(e.target.value)}
+                                placeholder="{Artist}/{Album}/{TrackNumber} - {Title}"
+                                className="input-field animate-fade-in"
+                            />
+                        )}
+                    </div>
+                    <p className="text-xs text-text-muted">Variables: {'{Artist}, {Album}, {Title}, {TrackNumber}, {Year}'}</p>
+                </div>
+
+                <div className="space-y-2">
+                    <label className="text-sm font-medium text-text">Default Quality</label>
                     <select
-                        id="quality-select"
                         value={quality}
                         onChange={(e) => setQuality(e.target.value)}
-                        class="input-field cursor-pointer w-full text-sm"
+                        className="input-field"
                     >
                         {QUALITY_OPTIONS.map((option) => (
                             <option key={option.value} value={option.value}>
@@ -69,112 +196,129 @@ export function SettingsPanel() {
                     </select>
                 </div>
 
-                {/* File Organization */}
-                <div class="space-y-2 sm:space-y-3">
-                    <label for="template-select" class="block text-sm font-semibold text-text">
-                        File Organization
-                    </label>
-                    <select
-                        id="template-select"
-                        value={organizationTemplate}
-                        onChange={(e) => setOrganizationTemplate(e.target.value)}
-                        class="input-field cursor-pointer w-full mb-2 text-sm"
-                    >
-                        {TEMPLATE_OPTIONS.map((option) => (
-                            <option key={option.value} value={option.value}>
-                                {option.label}
-                            </option>
-                        ))}
-                        {!TEMPLATE_OPTIONS.find(o => o.value === organizationTemplate) && (
-                            <option value={organizationTemplate}>Custom Template</option>
-                        )}
-                    </select>
-
-                    <input
-                        type="text"
-                        value={organizationTemplate}
-                        onInput={(e) => setOrganizationTemplate(e.target.value)}
-                        class="input-field w-full text-sm font-mono"
-                        placeholder="Custom template..."
-                    />
-                    <p class="text-xs text-text-muted">
-                        Available: &#123;Artist&#125;, &#123;Album&#125;, &#123;Title&#125;, &#123;TrackNumber&#125;, &#123;Year&#125;
-                    </p>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 gap-3 sm:gap-6 pt-4 border-t border-border">
-                {/* Toggles */}
-                <div class="flex items-center justify-between p-2 rounded-lg hover:bg-surface-alt transition-colors">
-                    <div class="space-y-0.5">
-                        <label class="text-sm font-semibold text-text cursor-pointer" onClick={() => setUseMusicBrainz(!useMusicBrainz)}>MusicBrainz Tagging</label>
-                        <p class="text-xs text-text-muted">Fetch accurate metadata (genre, ISRC, MBIDs) from MusicBrainz</p>
+                <div className="flex items-center justify-between p-4 bg-surface-alt rounded-lg border border-border-light">
+                    <div className="space-y-1">
+                        <span className="text-sm font-medium text-text block">Group Compilations</span>
+                        <span className="text-xs text-text-muted block">Put tracks in "Compilations" folder if Various Artists</span>
                     </div>
-                    <label class="relative inline-flex items-center cursor-pointer">
-                        <input
-                            type="checkbox"
-                            checked={useMusicBrainz}
-                            onChange={(e) => setUseMusicBrainz(e.target.checked)}
-                            class="sr-only peer"
-                        />
-                        <div class="w-11 h-6 bg-surface peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                    </label>
-                </div>
-
-                <div class={`flex items-center justify-between p-2 rounded-lg transition-colors ${useMusicBrainz ? 'opacity-50 cursor-not-allowed' : 'hover:bg-surface-alt'}`}>
-                    <div class="space-y-0.5">
-                        <label class={`text-sm font-semibold text-text ${useMusicBrainz ? 'cursor-not-allowed' : 'cursor-pointer'}`} onClick={() => !useMusicBrainz && setRunBeets(!runBeets)}>Beets Integration</label>
-                        <p class="text-xs text-text-muted">
-                            {useMusicBrainz
-                                ? "Disabled when MusicBrainz is enabled"
-                                : "Run \"beet import\" after download (requires beets)"}
-                        </p>
-                    </div>
-                    <label class={`relative inline-flex items-center ${useMusicBrainz ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
-                        <input
-                            type="checkbox"
-                            checked={runBeets && !useMusicBrainz}
-                            onChange={(e) => setRunBeets(e.target.checked)}
-                            disabled={useMusicBrainz}
-                            class="sr-only peer"
-                        />
-                        <div class="w-11 h-6 bg-surface peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                    </label>
-                </div>
-
-                <div class={`flex items-center justify-between p-2 rounded-lg transition-colors ${quality.startsWith('OPUS') ? 'opacity-50 cursor-not-allowed' : 'hover:bg-surface-alt'}`}>
-                    <div class="space-y-0.5">
-                        <label class={`text-sm font-semibold text-text ${quality.startsWith('OPUS') ? 'cursor-not-allowed' : 'cursor-pointer'}`} onClick={() => !quality.startsWith('OPUS') && setEmbedLyrics(!embedLyrics)}>Embed Lyrics (FFmpeg)</label>
-                        <p class="text-xs text-text-muted">
-                            {quality.startsWith('OPUS')
-                                ? "Not available for Opus format"
-                                : "Use FFmpeg to embed lyrics (resolves sync issues)"}
-                        </p>
-                    </div>
-                    <label class={`relative inline-flex items-center ${quality.startsWith('OPUS') ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
-                        <input
-                            type="checkbox"
-                            checked={embedLyrics && !quality.startsWith('OPUS')}
-                            onChange={(e) => setEmbedLyrics(e.target.checked)}
-                            disabled={quality.startsWith('OPUS')}
-                            class="sr-only peer"
-                        />
-                        <div class="w-11 h-6 bg-surface peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" className="sr-only peer" checked={groupCompilations} onChange={(e) => setGroupCompilations(e.target.checked)} />
+                        <div className="w-11 h-6 bg-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
                     </label>
                 </div>
             </div>
 
-            <div class="flex items-center justify-between p-2 rounded-lg hover:bg-surface-alt transition-colors">
-                <div class="space-y-0.5">
-                    <label class="text-sm font-semibold text-text">Tidal Playlists Update Time</label>
-                    <p class="text-xs text-text-muted">Time to check for updates (Daily/Weekly/Monthly)</p>
+            {/* Download Features */}
+            <div className="card p-6 space-y-6">
+                <h2 className="text-xl font-semibold text-text flex items-center gap-2">
+                    <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path></svg>
+                    Download Features
+                </h2>
+
+                <div className="space-y-4">
+                    <div className="flex items-center justify-between p-4 bg-surface-alt rounded-lg border border-border-light">
+                        <div className="space-y-1">
+                            <span className="text-sm font-medium text-text block">MusicBrainz Tagging</span>
+                            <span className="text-xs text-text-muted block">Fetch accurate metadata (genre, ISRC, MBIDs) from MusicBrainz</span>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" className="sr-only peer" checked={useMusicBrainz} onChange={(e) => setUseMusicBrainz(e.target.checked)} />
+                            <div className="w-11 h-6 bg-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                        </label>
+                    </div>
+
+                    <div className={`flex items-center justify-between p-4 bg-surface-alt rounded-lg border border-border-light ${useMusicBrainz ? 'opacity-50' : ''}`}>
+                        <div className="space-y-1">
+                            <span className="text-sm font-medium text-text block">Beets Tagging</span>
+                            <span className="text-xs text-text-muted block">{useMusicBrainz ? "Disabled when MusicBrainz is enabled" : "Run beets importer after download (Experimental)"}</span>
+                        </div>
+                        <label className={`relative inline-flex items-center ${useMusicBrainz ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
+                            <input type="checkbox" className="sr-only peer" checked={runBeets && !useMusicBrainz} onChange={(e) => setRunBeets(e.target.checked)} disabled={useMusicBrainz} />
+                            <div className="w-11 h-6 bg-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                        </label>
+                    </div>
+
+                    <div className="flex items-center justify-between p-4 bg-surface-alt rounded-lg border border-border-light">
+                        <div className="space-y-1">
+                            <span className="text-sm font-medium text-text block">Embed Created Lyrics</span>
+                            <span className="text-xs text-text-muted block">Embed synced lyrics into file metadata</span>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" className="sr-only peer" checked={embedLyrics} onChange={(e) => setEmbedLyrics(e.target.checked)} />
+                            <div className="w-11 h-6 bg-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                        </label>
+                    </div>
                 </div>
-                <input
-                    type="time"
-                    value={serverQueueSettings.sync_time || "04:00"}
-                    onChange={(e) => updateServerSettings({ sync_time: e.target.value })}
-                    class="input-field w-32"
-                />
+            </div>
+
+            {/* Jellyfin Integration */}
+            <div className="card p-6 space-y-6">
+                <h2 className="text-xl font-semibold text-text flex items-center gap-2">
+                    <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
+                    Jellyfin Integration
+                </h2>
+
+                <div className="grid grid-cols-1 gap-6">
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium text-text">Server URL</label>
+                        <input
+                            type="text"
+                            value={jellyfinUrl}
+                            onChange={(e) => setJellyfinUrl(e.target.value)}
+                            placeholder="http://192.168.1.10:8096"
+                            className="input-field"
+                        />
+                    </div>
+
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium text-text">API Key</label>
+                        <div className="flex gap-2">
+                            <input
+                                type="password"
+                                value={jellyfinApiKey}
+                                onChange={(e) => setJellyfinApiKey(e.target.value)}
+                                placeholder="Your API Key"
+                                className="input-field"
+                            />
+                            <button
+                                onClick={testJellyfinConnection}
+                                disabled={!jellyfinUrl || !jellyfinApiKey}
+                                className={`px-4 py-2 rounded-lg font-medium transition-colors border ${jellyfinStatus === 'success' ? 'bg-green-500/20 text-green-500 border-green-500/50' :
+                                    jellyfinStatus === 'error' ? 'bg-red-500/20 text-red-500 border-red-500/50' :
+                                        'bg-surface-alt text-text border-border hover:bg-surface'
+                                    }`}
+                            >
+                                {jellyfinStatus === 'testing' ? '...' :
+                                    jellyfinStatus === 'success' ? 'OK' :
+                                        jellyfinStatus === 'error' ? 'Fail' : 'Test'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Save Button */}
+            <div className="flex justify-end pt-4">
+                <button
+                    onClick={handleSave}
+                    disabled={processing}
+                    className="btn-primary flex items-center gap-2"
+                >
+                    {processing ? (
+                        <div className="flex items-center gap-2">
+                            <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <span>Saving...</span>
+                        </div>
+                    ) : (
+                        <div className="flex items-center gap-2">
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
+                            <span>Save Settings</span>
+                        </div>
+                    )}
+                </button>
             </div>
         </div>
     );

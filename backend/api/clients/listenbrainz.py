@@ -76,18 +76,26 @@ class ListenBrainzClient:
         # Find the latest playlist matching the keyword
         # Playlists are usually ordered by date descending from the API, but we'll checking carefully
         candidate_playlists = []
+        
+        # Log available playlists for debugging
+        available_titles = [p.get("playlist", {}).get("title", "Unknown") for p in playlists]
+        logger.info(f"Available playlists for {username}: {available_titles}")
+        
         for pl_wrapper in playlists:
              pl = pl_wrapper.get("playlist", {})
              title = pl.get("title", "").lower()
              if search_term in title:
                  candidate_playlists.append(pl)
         
+        logger.info(f"Found {len(candidate_playlists)} candidate playlists for '{search_term}'")
+
         # Sort by title (usually contains date/year) to get the latest? 
         # Actually the API returns them usually sorted, but let's just take the first one found 
         # which is typically the latest for Weeklys. For yearly, we might want the latest year.
         if candidate_playlists:
             # Simple heuristic: first one is usually latest
             target_playlist = candidate_playlists[0]
+            logger.info(f"Selected playlist: {target_playlist.get('title')} ({target_playlist.get('identifier')})")
         
         if not target_playlist:
             logger.warning(f"No playlist found for type '{playlist_type}' for {username}")
@@ -99,7 +107,7 @@ class ListenBrainzClient:
             return []
             
         uuid = playlist_id_url.split('/')[-1]
-        logger.info(f"Fetching full details for playlist {uuid} ({target_playlist.get('title')})")
+        logger.info(f"Fetching full details for playlist {uuid}")
         
         try:
             full_playlist_data = await self.get_playlist(uuid)

@@ -20,6 +20,9 @@ async def generate_listenbrainz_playlist(
 ):
     progress_id = str(uuid.uuid4())
     
+    # Initialize queue here to prevent race condition
+    lb_progress_queues[progress_id] = asyncio.Queue()
+    
     background_tasks.add_task(
         listenbrainz_generate_with_progress,
         request.username,

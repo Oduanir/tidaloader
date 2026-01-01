@@ -1,38 +1,40 @@
 import asyncio
-import json
+from typing import Optional, Callable, Dict, List, Awaitable
 from api.state import lb_progress_queues
-from api.utils.logging import log_info, log_error, log_success
+from api.utils.logging import log_info, log_error
 from api.utils.text import fix_unicode
 from api.services.search import search_track_with_fallback
 from api.clients.listenbrainz import ListenBrainzClient
 
-async def listenbrainz_generate_with_progress(username: str, playlist_type: str, progress_id: str, validate: bool = True):
-    queue = asyncio.Queue()
-    lb_progress_queues[progress_id] = queue
-    
+async def fetch_and_validate_listenbrainz_playlist(
+    username: str, 
+    playlist_type: str, 
+    progress_callback: Optional[Callable[[Dict], Awaitable[None]]] = None,
+    validate: bool = True
+) -> List[Dict]:
+    """
+    Reusable function to fetch and optionally validate ListenBrainz playlist.
+    Used by both UI (via progress_callback) and Background Sync.
+    """
     client = ListenBrainzClient()
     
+    async def report(data: Dict):
+        if progress_callback:
+            await progress_callback(data)
+            
     try:
         display_name = playlist_type.replace("-", " ").title()
-        await queue.put({
+        await report({
             "type": "info",
             "message": f"Fetching {display_name} for {username}...",
             "progress": 0,
             "total": 0
         })
         
-        # Use the requested playlist type
         tracks = await client.get_playlist_by_type(username, playlist_type)
         
         if not tracks:
-            # Fallback for old 'weekly-jams' request potentially checking exploration? 
-            # No, let's be strict now or the UI selector doesn't mean much.
-            if playlist_type == "weekly-jams":
-                 # If weekly jams specifically requested and not found, check exploration?
-                 # Nah, let user select it.
-                 pass
-            
-            raise Exception(f"No playlist found for type '{display_name}' for this user.")
+             raise Exception(f"No playlist found for type '{display_name}' for this user.")
 
         for track in tracks:
             track.title = fix_unicode(track.title)
@@ -40,7 +42,7 @@ async def listenbrainz_generate_with_progress(username: str, playlist_type: str,
             if track.album:
                 track.album = fix_unicode(track.album)
         
-        await queue.put({
+        await report({
             "type": "info",
             "message": f"Found {len(tracks)} tracks from ListenBrainz",
             "progress": 0,
@@ -52,7 +54,7 @@ async def listenbrainz_generate_with_progress(username: str, playlist_type: str,
             for i, track in enumerate(tracks, 1):
                 display_text = f"{track.artist} - {track.title}"
                 
-                await queue.put({
+                await report({
                     "type": "validating",
                     "message": f"Validating: {display_text}",
                     "progress": i,
@@ -94,7 +96,7 @@ async def listenbrainz_generate_with_progress(username: str, playlist_type: str,
                     "cover": None
                 })
              
-             await queue.put({
+             await report({
                 "type": "info",
                 "message": "Skipping validation as requested.",
                 "progress": len(tracks),
@@ -105,7 +107,7 @@ async def listenbrainz_generate_with_progress(username: str, playlist_type: str,
         
         log_info(f"Validation complete: {found_count}/{len(validated_tracks)} found on Tidal")
         
-        await queue.put({
+        await report({
             "type": "complete",
             "message": f"Validation complete: {found_count}/{len(validated_tracks)} found on Tidal",
             "progress": len(tracks),
@@ -114,6 +116,24 @@ async def listenbrainz_generate_with_progress(username: str, playlist_type: str,
             "found_count": found_count
         })
         
+        return validated_tracks
+
+    finally:
+        await client.close()
+
+async def listenbrainz_generate_with_progress(username: str, playlist_type: str, progress_id: str, validate: bool = True):
+    # Queue is already initialized in router to prevent race conditions
+    queue = lb_progress_queues.get(progress_id)
+    if not queue:
+        # Fallback if somehow missing
+        queue = asyncio.Queue()
+        lb_progress_queues[progress_id] = queue
+    
+    async def callback(data: Dict):
+        await queue.put(data)
+    
+    try:
+        await fetch_and_validate_listenbrainz_playlist(username, playlist_type, callback, validate)
     except Exception as e:
         log_error(f"ListenBrainz generation error: {str(e)}")
         await queue.put({
@@ -123,5 +143,4 @@ async def listenbrainz_generate_with_progress(username: str, playlist_type: str,
             "total": 0
         })
     finally:
-        await client.close()
         await queue.put(None)

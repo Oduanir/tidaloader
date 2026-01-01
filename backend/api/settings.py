@@ -15,8 +15,13 @@ class Settings(BaseSettings):
     active_downloads: int = 3
     
     # Feature toggles
+    use_musicbrainz: bool = True
     run_beets: bool = False
     embed_lyrics: bool = False
+    
+    # Jellyfin Integration
+    jellyfin_url: Optional[str] = None
+    jellyfin_api_key: Optional[str] = None
     
     class Config:
         env_file = Path(__file__).parent.parent.parent / ".env"

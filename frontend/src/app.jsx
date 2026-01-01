@@ -112,7 +112,7 @@ export function App() {
                     </h1>
                     <button
                         class="btn-surface flex items-center gap-2 self-start sm:self-auto"
-                        onClick={() => setShowSettings(!showSettings)}
+                        onClick={() => setShowSettings(prev => !prev)}
                     >
                         <svg
                             class="w-5 h-5"

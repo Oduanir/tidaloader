@@ -71,32 +71,33 @@ class PlaylistScheduler:
                 
             should_sync = False
             
-            # Logic: If frequency is 'daily', we sync every night.
-            # If 'weekly', we check if 7 days passed.
+            # Logic: 
+            # - 'daily': sync every time scheduler runs (once a day)
+            # - 'weekly': sync if it's Monday (ListenBrainz Weekly Jams usually out on Mon)
+            # - 'yearly': sync if it's January 1st
+            
+            now = datetime.now()
+            
             if frequency == 'daily':
                 should_sync = True
             elif frequency == 'weekly':
-                 if not last_sync_str:
-                     should_sync = True
-                 else:
-                     try:
-                         last_sync = datetime.fromisoformat(last_sync_str)
-                         now = datetime.now()
-                         if now - last_sync > timedelta(days=7):
-                             should_sync = True
-                     except Exception:
+                # Sync on Mondays (weekday 0)
+                if now.weekday() == 0:
+                     # Check if already synced today to avoid redundant syncs if scheduler restarts
+                     if not last_sync_str or not last_sync_str.startswith(now.strftime("%Y-%m-%d")):
                          should_sync = True
-            elif frequency == 'monthly':
-                 if not last_sync_str:
-                     should_sync = True
-                 else:
-                     try:
-                         last_sync = datetime.fromisoformat(last_sync_str)
-                         now = datetime.now()
-                         if now - last_sync > timedelta(days=30):
-                             should_sync = True
-                     except Exception:
+            elif frequency == 'yearly':
+                # Sync on Jan 1st
+                if now.month == 1 and now.day == 1:
+                     if not last_sync_str or not last_sync_str.startswith(now.strftime("%Y-%m-%d")):
                          should_sync = True
+            
+            # Legacy fallback: If standard intervals are needed, keep implementation or remove?
+            # The requirement specifically mentioned Monday/Jan 1 updates for this feature.
+            # Let's keep a fallback for manual "Monitored" legacy playlists that might just want "Every 7 days"
+            # But the UI currently only exposes Manual/Daily/Weekly.
+            # If a user sets "Weekly" for a normal playlist, they might expect "Every 7 days" OR "Every Monday".
+            # "Every Monday" is a safer, predictable default for "Weekly".
             
             if should_sync:
                 logger.info(f"Triggering scheduled sync for playlist: {name} ({frequency})")

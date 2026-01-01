@@ -165,7 +165,7 @@ async def generate_spotify_m3u8(playlist_name: str, tracks: List[Dict[str, Any]]
     playlist_file = playlist_folder / m3u8_filename
     
     # Build m3u8 content
-    m3u8_lines = ["#EXTM3U"]
+    m3u8_lines = ["#EXTM3U", "# Source: Spotify"]
     included_count = 0
     skipped_count = 0
     

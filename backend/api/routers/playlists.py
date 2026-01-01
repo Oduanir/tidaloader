@@ -14,8 +14,10 @@ logger = logging.getLogger(__name__)
 class MonitorPlaylistRequest(BaseModel):
     uuid: str
     name: str # Name to be used for the playlist file/display
-    frequency: Literal["manual", "daily", "weekly", "monthly"] = "manual"
+    frequency: Literal["manual", "daily", "weekly", "monthly", "yearly"] = "manual"
     quality: Literal["LOW", "HIGH", "LOSSLESS", "HI_RES"] = "LOSSLESS"
+    source: Literal["tidal", "listenbrainz"] = "tidal"
+    extra_config: Optional[Dict[str, Any]] = None
 
 class DeleteFilesRequest(BaseModel):
     files: List[str]
@@ -53,7 +55,9 @@ async def monitor_playlist(
             request.uuid, 
             request.name, 
             request.frequency, 
-            request.quality
+            request.quality,
+            request.source,
+            request.extra_config
         )
         
         # Start initial sync in background only if new
@@ -85,8 +89,9 @@ async def sync_playlist_manual(
         if not playlist_manager.get_playlist(uuid):
             raise HTTPException(status_code=404, detail="Playlist not monitored")
             
-        background_tasks.add_task(playlist_manager.sync_playlist, uuid)
-        return {"status": "started", "message": "Sync started in background"}
+        # Run synchronously for manual trigger to provide feedback
+        result = await playlist_manager.sync_playlist(uuid)
+        return result
     except HTTPException:
         raise
     except Exception as e:
