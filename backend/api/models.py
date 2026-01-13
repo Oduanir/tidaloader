@@ -14,6 +14,7 @@ class PlaylistTrack:
     tidal_exists: bool = False
     album: Optional[str] = None
     cover: Optional[str] = None
+    track_number: Optional[int] = None
 
 class ListenBrainzGenerateRequest(BaseModel):
     username: str

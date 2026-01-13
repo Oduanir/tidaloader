@@ -28,6 +28,7 @@ async def search_track_with_fallback(artist: str, title: str, track_obj) -> bool
             # Normalize Title and Artist from Tidal to ensure file paths match
             track_obj.title = first_track.get('title', title)
             track_obj.artist = first_track.get('artist', {}).get('name', artist)
+            track_obj.track_number = first_track.get('trackNumber')
             
             log_success(f"Found on Tidal - ID: {track_obj.tidal_id}")
             return True
@@ -60,6 +61,7 @@ async def search_track_with_fallback(artist: str, title: str, track_obj) -> bool
                 # Normalize Title and Artist from Tidal to ensure file paths match
                 track_obj.title = first_track.get('title', search_title)
                 track_obj.artist = first_track.get('artist', {}).get('name', search_artist)
+                track_obj.track_number = first_track.get('trackNumber')
                 
                 log_success(f"Found via romanization - ID: {track_obj.tidal_id}")
                 return True

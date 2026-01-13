@@ -239,6 +239,7 @@ class PlaylistManager:
                         'title': t['title'],
                         'artist': {'name': t['artist'], 'id': t.get('tidal_artist_id')},
                         'album': {'title': t.get('album', 'Unknown Album'), 'id': t.get('tidal_album_id'), 'cover': t.get('cover')},
+                        'trackNumber': t.get('track_number'),
                         'duration': -1 # We don't have duration from simple valid result
                     }
                 })

@@ -78,7 +78,8 @@ async def fetch_and_validate_listenbrainz_playlist(
                     "tidal_album_id": track.tidal_album_id,
                     "tidal_exists": track.tidal_exists,
                     "album": track.album,
-                    "cover": getattr(track, 'cover', None)
+                    "cover": getattr(track, 'cover', None),
+                    "track_number": getattr(track, 'track_number', None)
                 })
                 
                 await asyncio.sleep(0.1)
@@ -93,7 +94,8 @@ async def fetch_and_validate_listenbrainz_playlist(
                     "tidal_album_id": None,
                     "tidal_exists": False,
                     "album": track.album,
-                    "cover": None
+                    "cover": None,
+                    "track_number": getattr(track, 'track_number', None)
                 })
              
              await report({
