@@ -79,31 +79,60 @@ class PlaylistScheduler:
             now = datetime.now()
             
             if frequency == 'daily':
-                should_sync = True
+                # Sync if > 1 day elapsed or never synced
+                if not last_sync_str:
+                    should_sync = True
+                else:
+                    try:
+                        last_sync = datetime.strptime(last_sync_str, "%Y-%m-%d")
+                        if (now - last_sync).days >= 1:
+                            should_sync = True
+                    except ValueError:
+                        should_sync = True # Bad date format, force sync
+
             elif frequency == 'weekly':
-                # Sync on Mondays (weekday 0)
-                if now.weekday() == 0:
-                     # Check if already synced today to avoid redundant syncs if scheduler restarts
-                     if not last_sync_str or not last_sync_str.startswith(now.strftime("%Y-%m-%d")):
-                         should_sync = True
+                # Sync if > 7 days elapsed (Robustness)
+                # OR if it's Tuesday (preferred day for Weekly Jams) and not synced today
+                is_tuesday = (now.weekday() == 1)
+                
+                if not last_sync_str:
+                    should_sync = True
+                else:
+                    try:
+                        last_sync = datetime.strptime(last_sync_str, "%Y-%m-%d")
+                        days_diff = (now - last_sync).days
+                        
+                        if days_diff >= 7:
+                            should_sync = True
+                        elif is_tuesday and days_diff >= 1:
+                            # It's Tuesday and we haven't synced since yesterday (or before)
+                            # Actually, just check if last_sync is NOT today
+                            if last_sync.date() != now.date():
+                                should_sync = True
+                    except ValueError:
+                        should_sync = True
+
             elif frequency == 'yearly':
-                # Sync on Jan 1st
-                if now.month == 1 and now.day == 1:
-                     if not last_sync_str or not last_sync_str.startswith(now.strftime("%Y-%m-%d")):
-                         should_sync = True
-            
-            # Legacy fallback: If standard intervals are needed, keep implementation or remove?
-            # The requirement specifically mentioned Monday/Jan 1 updates for this feature.
-            # Let's keep a fallback for manual "Monitored" legacy playlists that might just want "Every 7 days"
-            # But the UI currently only exposes Manual/Daily/Weekly.
-            # If a user sets "Weekly" for a normal playlist, they might expect "Every 7 days" OR "Every Monday".
-            # "Every Monday" is a safer, predictable default for "Weekly".
+                # Sync if > 365 days elapsed OR Jan 1st
+                is_jan_first = (now.month == 1 and now.day == 1)
+                
+                if not last_sync_str:
+                    should_sync = True
+                else:
+                    try:
+                        last_sync = datetime.strptime(last_sync_str, "%Y-%m-%d")
+                        if (now - last_sync).days >= 365:
+                            should_sync = True
+                        elif is_jan_first and last_sync.date() != now.date():
+                            should_sync = True
+                    except ValueError:
+                        should_sync = True
             
             if should_sync:
-                logger.info(f"Triggering scheduled sync for playlist: {name} ({frequency})")
+                logger.info(f"Triggering scheduled sync for playlist: {name} (Freq: {frequency}, Last: {last_sync_str})")
                 try:
                     await playlist_manager.sync_playlist(uuid)
                 except Exception as e:
                     logger.error(f"Scheduled sync failed for {name}: {e}")
             else:
-                 pass
+                 logger.debug(f"Skipping sync for {name} (Freq: {frequency}, Last: {last_sync_str})")
