@@ -88,12 +88,15 @@ class PlaylistScheduler:
                         if (now - last_sync).days >= 1:
                             should_sync = True
                     except ValueError:
-                        should_sync = True # Bad date format, force sync
+                        should_sync = True
 
             elif frequency == 'weekly':
-                # Sync if > 7 days elapsed (Robustness)
-                # OR if it's Tuesday (preferred day for Weekly Jams) and not synced today
-                is_tuesday = (now.weekday() == 1)
+                # Differentiate based on source
+                source = p.get('source', '')
+                is_listenbrainz = (source == 'listenbrainz')
+                
+                # If ListenBrainz: Prefer Tuesday (weekday=1)
+                # Others: Strict 7 days
                 
                 if not last_sync_str:
                     should_sync = True
@@ -104,11 +107,27 @@ class PlaylistScheduler:
                         
                         if days_diff >= 7:
                             should_sync = True
-                        elif is_tuesday and days_diff >= 1:
-                            # It's Tuesday and we haven't synced since yesterday (or before)
-                            # Actually, just check if last_sync is NOT today
-                            if last_sync.date() != now.date():
-                                should_sync = True
+                        elif is_listenbrainz and (now.weekday() == 1) and days_diff >= 1 and last_sync.date() != now.date():
+                             # It's Tuesday, it's ListenBrainz, and we haven't synced today
+                             should_sync = True
+                    except ValueError:
+                        should_sync = True
+
+            elif frequency == 'monthly':
+                # Sync if > 30 days elapsed OR moved to next month (roughly)
+                # Let's say: Sync on the 1st of month OR if > 30 days
+                
+                if not last_sync_str:
+                    should_sync = True
+                else:
+                    try:
+                        last_sync = datetime.strptime(last_sync_str, "%Y-%m-%d")
+                        days_diff = (now - last_sync).days
+                        
+                        if days_diff >= 30:
+                            should_sync = True
+                        elif now.day == 1 and last_sync.month != now.month:
+                             should_sync = True
                     except ValueError:
                         should_sync = True
 
