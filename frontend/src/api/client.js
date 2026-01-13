@@ -115,6 +115,13 @@ class ApiClient {
     }
 
     /**
+     * Search for Spotify playlists
+     */
+    searchSpotifyPlaylists(query) {
+        return this.get("/spotify/search", { query });
+    }
+
+    /**
      * Get album tracks
      */
     getAlbumTracks(albumId) {
