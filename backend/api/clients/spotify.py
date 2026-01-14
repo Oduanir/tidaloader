@@ -129,7 +129,7 @@ class SpotifyClient:
         except Exception:
             return 0
 
-    def _search_playlists_sync(self, query: str, limit: int = 10) -> List[SpotifyPlaylist]:
+    def _search_playlists_sync(self, query: str, limit: int = 50) -> List[SpotifyPlaylist]:
         """
         Synchronous method to search for playlists.
         Uses spotapi.song.Song.query_songs manually to extract playlist results.
