@@ -94,7 +94,11 @@ class PlaylistScheduler:
             return True, "Never synced"
             
         try:
-            last_sync_date = datetime.strptime(last_sync_str, "%Y-%m-%d").date()
+            # Handle ISO timestamp if present (contains 'T')
+            if 'T' in last_sync_str:
+                last_sync_date = datetime.fromisoformat(last_sync_str).date()
+            else:
+                last_sync_date = datetime.strptime(last_sync_str, "%Y-%m-%d").date()
         except ValueError:
             return True, "Invalid last_sync date format"
             
